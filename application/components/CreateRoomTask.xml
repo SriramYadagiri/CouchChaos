@@ -1,0 +1,7 @@
+<component name="CreateRoomTask" extends="Task">
+    <interface>
+        <field id="roomData" type="assocarray"/>
+    </interface>
+
+    <script type="text/brightscript" uri="CreateRoomTask.brs"/>
+</component>

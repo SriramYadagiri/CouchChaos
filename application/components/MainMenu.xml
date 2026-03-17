@@ -1,0 +1,12 @@
+<component name="MainMenu" extends="Group">
+    <children>
+        <Label id="title" text="Couch Chaos" translation="[600,200]"/>
+        <Button id="createBtn" text="Create Room" translation="[600,400]"/>
+    </children>
+
+    <interface>
+        <field id="sceneManager" type="node"/>
+    </interface>
+
+    <script type="text/brightscript" uri="MainMenu.brs"/>
+</component>

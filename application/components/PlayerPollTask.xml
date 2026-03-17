@@ -1,0 +1,8 @@
+<component name="PlayerPollTask" extends="Task">
+    <interface>
+        <field id="roomCode" type="string"/>
+        <field id="roomState" type="assocarray"/>
+    </interface>
+
+    <script type="text/brightscript" uri="PlayerPollTask.brs"/>
+</component>

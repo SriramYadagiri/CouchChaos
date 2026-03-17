@@ -1,0 +1,9 @@
+<component name="SceneManager" extends="Scene">
+     <interface>
+        <function name="goToLobby"/>
+        <function name="showMainMenu"/>
+    </interface>
+
+    <script type="text/brightscript" uri="SceneManager.brs"/>
+
+</component>

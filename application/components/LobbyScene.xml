@@ -1,0 +1,15 @@
+<component name="LobbyScene" extends="Group">
+
+    <children>
+        <Label id="roomCodeLabel" translation="[500,200]"/>
+        <Label id="playersLabel" translation="[500,300]"/>
+    </children>
+
+    <interface>
+        <field id="sceneManager" type="node"/>
+        <field id="roomCode" type="string"/>
+    </interface>
+
+    <script type="text/brightscript" uri="LobbyScene.brs"/>
+
+</component>
