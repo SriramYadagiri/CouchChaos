@@ -1,0 +1,32 @@
+<component name="PlayerGridItem" extends="Group">
+    <interface>
+        <field id="itemContent" type="node" onChange="onContentChanged" />
+    </interface>
+
+    <children>
+        <Rectangle
+            id="card"
+            width="220"
+            height="100"
+            color="0x173049FF"
+        />
+
+        <Rectangle
+            id="accent"
+            width="220"
+            height="8"
+            color="0x27C2FFFF"
+        />
+
+        <Label
+            id="playerName"
+            translation="[18, 28]"
+            width="184"
+            height="42"
+            horizAlign="center"
+            color="0xFFFFFFFF"
+        />
+    </children>
+
+    <script type="text/brightscript" uri="PlayerGridItem.brs" />
+</component>

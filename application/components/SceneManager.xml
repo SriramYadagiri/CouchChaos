@@ -2,6 +2,7 @@
      <interface>
         <function name="goToLobby"/>
         <function name="showMainMenu"/>
+        <function name="showMiniGameVote"/>
     </interface>
 
     <script type="text/brightscript" uri="SceneManager.brs"/>

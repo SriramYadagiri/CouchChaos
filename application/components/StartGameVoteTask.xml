@@ -1,0 +1,8 @@
+<component name="StartGameVoteTask" extends="Task">
+    <interface>
+        <field id="roomCode" type="string"/>
+        <field id="roomState" type="assocarray"/>
+    </interface>
+
+    <script type="text/brightscript" uri="StartGameVoteTask.brs"/>
+</component>

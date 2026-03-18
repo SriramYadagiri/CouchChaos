@@ -1,20 +1,18 @@
 sub init()
-    m.top.functionName = "createRoom"
+    m.top.functionName = "startGameVote"
 end sub
 
-function createRoom()
-    url = "http://192.168.86.69:3000/api/create-room"
+function startGameVote()
+    url = "http://192.168.86.69:3000/api/room/" + m.top.roomCode + "/start-game-vote"
 
     transfer = CreateObject("roUrlTransfer")
     transfer.SetUrl(url)
     transfer.SetRequest("POST")
 
     response = transfer.GetToString()
-    print response
 
-    if response <> invalid then
+    if response <> invalid
         data = ParseJson(response)
-        m.top.roomData = data
+        m.top.roomState = data
     end if
-
 end function

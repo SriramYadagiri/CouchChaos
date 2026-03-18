@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Couch Chaos | Enter Name</title>
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="theme-shell">
+    <main class="mobile-shell">
+        <section class="mobile-card hero-card">
+            <p class="brand-pill">COUCH CHAOS</p>
+            <h1 class="page-title">Pick Your Name</h1>
+            <p id="roomPreview" class="page-copy">Joining room...</p>
+
+            <div class="form-stack">
+                <label class="field-label" for="name">Display name</label>
+                <input id="name" class="text-input" placeholder="Player name" maxlength="20" autocomplete="nickname" />
+                <button class="primary-btn" onclick="submitName()">Continue</button>
+                <p id="error" class="status-error"></p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const code = (params.get('code') || '').toUpperCase();
+        document.getElementById('roomPreview').innerText = code ? `Joining room ${code}` : 'Missing room code.';
+
+        function submitName() {
+            const name = document.getElementById('name').value.trim();
+            const errorEl = document.getElementById('error');
+            errorEl.innerText = '';
+
+            if (!code) {
+                errorEl.innerText = 'Missing room code.';
+                return;
+            }
+
+            if (!name) {
+                errorEl.innerText = 'Enter a name.';
+                return;
+            }
+
+            localStorage.setItem('name', name);
+            localStorage.setItem('code', code);
+            window.location.href = '/game.html';
+        }
+
+        document.getElementById('name').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') submitName();
+        });
+    </script>
+</body>
+</html>

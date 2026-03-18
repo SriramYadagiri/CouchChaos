@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Couch Chaos | Controller</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="theme-shell controller-page">
+  <main class="mobile-shell controller-shell">
+    <section class="mobile-card controller-hero">
+      <div class="hero-topline">
+        <p class="brand-pill">COUCH CHAOS</p>
+        <div class="meta-chip-row">
+          <span id="playerChip" class="meta-chip"></span>
+          <span id="roomChip" class="meta-chip"></span>
+        </div>
+      </div>
+      <h1 id="status" class="page-title">Connecting...</h1>
+      <p id="details" class="page-copy">Waiting for the TV.</p>
+    </section>
+
+    <section id="content" class="controller-content"></section>
+  </main>
+
+<script>
+const socket = io();
+const TRIVIA_OPTION_STYLES = {
+  red: { label: "Red", background: "#c0392b", color: "#ffffff" },
+  blue: { label: "Blue", background: "#2980b9", color: "#ffffff" },
+  yellow: { label: "Yellow", background: "#d4ac0d", color: "#111111" },
+  green: { label: "Green", background: "#239b56", color: "#ffffff" }
+};
+
+const name = localStorage.getItem('name');
+const code = localStorage.getItem('code');
+let votedGameId = null;
+let votedGameLabel = "";
+let answeredQuestionNumber = null;
+let latestPhase = "";
+let latestState = null;
+
+if (!name || !code) {
+  window.location.href = '/';
+}
+
+document.getElementById('playerChip').innerText = name ? `Player: ${name}` : "";
+document.getElementById('roomChip').innerText = code ? `Room: ${code}` : "";
+
+socket.emit('join_room', { code, name });
+
+function createCard(className = "mobile-card") {
+  const section = document.createElement('section');
+  section.className = className;
+  return section;
+}
+
+function createPhaseMessage(title, body) {
+  const card = createCard("mobile-card section-card");
+  const heading = document.createElement('h2');
+  heading.className = "section-title";
+  heading.innerText = title;
+
+  const copy = document.createElement('p');
+  copy.className = "section-copy";
+  copy.innerText = body;
+
+  card.appendChild(heading);
+  card.appendChild(copy);
+  return card;
+}
+
+function render(state) {
+  const content = document.getElementById('content');
+  const status = document.getElementById('status');
+  const details = document.getElementById('details');
+
+  if (state && state.phase !== latestPhase) {
+    if (state.phase !== "game_select") votedGameId = null;
+    if (state.phase !== "game_select") votedGameLabel = "";
+    if (state.phase !== "trivia_question") answeredQuestionNumber = null;
+    latestPhase = state.phase;
+  }
+
+  content.innerHTML = "";
+  document.body.setAttribute("data-phase", state?.phase || "waiting");
+
+  status.innerText = "Look at the TV";
+  details.innerText = "Waiting for the next prompt.";
+
+  if (!state) return;
+
+  if (state.phase === "game_select") {
+    status.innerText = "Vote for the next game";
+    details.innerText = votedGameId
+      ? (votedGameLabel ? `Vote locked: ${votedGameLabel}` : "Your vote is locked in.")
+      : "Choose a minigame on your phone. The Roku shows the preview.";
+
+    const grid = document.createElement('div');
+    grid.className = "vote-grid";
+
+    state.games.forEach((game) => {
+      const btn = document.createElement('button');
+      const isSelected = votedGameId === game.id;
+      btn.className = `vote-card${isSelected ? ' is-selected' : ''}`;
+      btn.disabled = votedGameId !== null;
+
+      const title = document.createElement('span');
+      title.className = "vote-card-title";
+      title.innerText = game.name;
+
+      const desc = document.createElement('span');
+      desc.className = "vote-card-copy";
+      desc.innerText = game.description || "A new round is about to start.";
+
+      const meta = document.createElement('span');
+      meta.className = "vote-card-meta";
+      meta.innerText = `${game.votes || 0} vote(s)`;
+
+      btn.appendChild(title);
+      btn.appendChild(desc);
+      btn.appendChild(meta);
+
+      btn.onclick = () => {
+        socket.emit("vote_game", { code, gameId: game.id }, (response) => {
+          if (!response?.ok) {
+            details.innerText = response?.error || "Unable to submit vote.";
+            if (response?.error === "Vote already submitted") {
+              votedGameId = "locked";
+              votedGameLabel = "";
+              render(latestState);
+            }
+            return;
+          }
+
+          votedGameId = game.id;
+          votedGameLabel = game.name;
+          render(latestState);
+        });
+      };
+
+      grid.appendChild(btn);
+    });
+
+    content.appendChild(grid);
+  } else if (state.phase === "game_selected") {
+    status.innerText = "Game selected";
+    details.innerText = state.selectedGame
+      ? `${state.selectedGame.name} won the vote.`
+      : "Waiting for the TV.";
+
+    content.appendChild(createPhaseMessage("Round starting", "Watch the TV for the next screen."));
+  } else if (state.phase === "trivia_question") {
+    const question = state.currentQuestion;
+    const questionNumber = question?.number || 0;
+    const answerLocked = answeredQuestionNumber === questionNumber;
+
+    status.innerText = question
+      ? `Question ${question.number} of ${question.total}`
+      : "Trivia Toss";
+    details.innerText = answerLocked
+      ? "Answer submitted. Waiting for the other players."
+      : (question?.prompt || "Waiting for the next question.");
+
+    const promptCard = createCard("mobile-card section-card");
+    const promptLabel = document.createElement('p');
+    promptLabel.className = "question-kicker";
+    promptLabel.innerText = "Choose a color";
+
+    const promptText = document.createElement('p');
+    promptText.className = "question-text";
+    promptText.innerText = question?.prompt || "Waiting for the next question.";
+
+    promptCard.appendChild(promptLabel);
+    promptCard.appendChild(promptText);
+    content.appendChild(promptCard);
+
+    const optionWrap = document.createElement('div');
+    optionWrap.className = "answer-grid";
+
+    const options = Array.isArray(question?.options)
+      ? question.options
+      : Object.values(question?.options || {});
+
+    if (options.length === 0) {
+      content.appendChild(createPhaseMessage("Loading answers", "The answer buttons will appear here."));
+      return;
+    }
+
+    options.forEach((option) => {
+      const btn = document.createElement('button');
+      const style = TRIVIA_OPTION_STYLES[option.color] || { label: option.label, background: "#444", color: "#fff" };
+      btn.className = "answer-card";
+      btn.disabled = answerLocked;
+      btn.style.backgroundColor = style.background;
+      btn.style.color = style.color;
+
+      const label = document.createElement('span');
+      label.className = "answer-card-title";
+      label.innerText = style.label;
+
+      const copy = document.createElement('span');
+      copy.className = "answer-card-copy";
+      copy.innerText = option.text || "";
+
+      btn.appendChild(label);
+      btn.appendChild(copy);
+
+      btn.onclick = () => {
+        socket.emit("submit_answer", { code, answerColor: option.color }, (response) => {
+          if (!response?.ok) {
+            details.innerText = response?.error || "Unable to submit answer.";
+            if (response?.error === "Answer already submitted") {
+              answeredQuestionNumber = questionNumber;
+              render(latestState);
+            }
+            return;
+          }
+
+          answeredQuestionNumber = questionNumber;
+          render(latestState);
+        });
+      };
+
+      optionWrap.appendChild(btn);
+    });
+
+    content.appendChild(optionWrap);
+  } else if (state.phase === "trivia_leaderboard") {
+    status.innerText = "Final leaderboard";
+    details.innerText = "Returning to minigame voting shortly.";
+
+    const board = document.createElement('section');
+    board.className = "mobile-card leaderboard-card";
+
+    const heading = document.createElement('h2');
+    heading.className = "section-title";
+    heading.innerText = "Standings";
+    board.appendChild(heading);
+
+    const list = document.createElement('ol');
+    list.className = "leaderboard-list";
+
+    (state.leaderboard || []).forEach((entry) => {
+      const item = document.createElement('li');
+      item.className = "leaderboard-row";
+
+      const nameEl = document.createElement('span');
+      nameEl.className = "leaderboard-name";
+      nameEl.innerText = entry.name;
+
+      const scoreEl = document.createElement('span');
+      scoreEl.className = "leaderboard-score";
+      scoreEl.innerText = `${entry.score} pts`;
+
+      item.appendChild(nameEl);
+      item.appendChild(scoreEl);
+      list.appendChild(item);
+    });
+
+    board.appendChild(list);
+    content.appendChild(board);
+  } else {
+    content.appendChild(createPhaseMessage("Controller ready", "Look at the TV for the next round."));
+  }
+}
+
+socket.on("connect", () => {
+  document.getElementById('status').innerText = "Connected";
+});
+
+socket.on("game_state", (state) => {
+  latestState = state;
+  render(latestState);
+});
+
+socket.on("error_message", (msg) => {
+  alert(msg);
+  window.location.href = "/";
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<component name="MiniGameItem" extends="Group">
+    <interface>
+        <field id="itemContent" type="node" onChange="onContentChanged" />
+    </interface>
+
+    <children>
+        <Rectangle
+            id="shadow"
+            translation="[6, 8]"
+            width="320"
+            height="220"
+            color="0x08111DCC"
+        />
+
+        <Rectangle
+            id="card"
+            width="320"
+            height="220"
+            color="0x173049FF"
+        />
+
+        <Rectangle
+            id="accent"
+            width="320"
+            height="10"
+            color="0x27C2FFFF"
+        />
+
+        <Label
+            id="titleLabel"
+            translation="[20, 28]"
+            width="280"
+            height="40"
+            color="0xFFFFFFFF"
+        />
+
+        <Label
+            id="descriptionLabel"
+            translation="[20, 55]"
+            width="280"
+            height="120"
+            numLines="5"
+            horizAlign="center"
+            vertAlign="center"
+            color="0xF4F7FBFF"
+        />
+
+        <Label
+            id="voteLabel"
+            translation="[20, 185]"
+            width="280"
+            height="30"
+            horizAlign="center"
+            color="0xD7E3FFFF"
+        />
+    </children>
+
+    <script type="text/brightscript" uri="MiniGameItem.brs" />
+</component>

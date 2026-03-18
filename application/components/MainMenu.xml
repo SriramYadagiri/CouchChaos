@@ -1,7 +1,112 @@
 <component name="MainMenu" extends="Group">
     <children>
-        <Label id="title" text="Couch Chaos" translation="[600,200]"/>
-        <Button id="createBtn" text="Create Room" translation="[600,400]"/>
+        <Rectangle
+            id="background"
+            width="1280"
+            height="720"
+            color="0x07111FFF"
+        />
+
+        <Rectangle
+            id="leftGlow"
+            translation="[120, 82]"
+            width="1040"
+            height="556"
+            color="0x102A46FF"
+        />
+
+        <Rectangle
+            id="heroPanel"
+            translation="[150, 110]"
+            width="980"
+            height="500"
+            color="0x12263DFF"
+        />
+
+        <Rectangle
+            id="heroAccent"
+            translation="[150, 110]"
+            width="980"
+            height="10"
+            color="0x27C2FFFF"
+        />
+
+        <Label
+            id="eyebrow"
+            text="ROKU PARTY NIGHT"
+            translation="[220, 165]"
+            width="420"
+            height="34"
+            wrap="true"
+            color="0x7FD8FFFF"
+        />
+
+        <Label
+            id="title"
+            text="Couch Chaos"
+            translation="[220, 225]"
+            width="720"
+            height="110"
+            wrap="true"
+            color="0xFFFFFFFF"
+        />
+
+        <Label
+            id="subtitle"
+            text="Host from the TV. Everyone joins on their phones. Vote for minigames and keep the round moving."
+            translation="[220, 350]"
+            width="620"
+            height="128"
+            numLines="4"
+            wrap="true"
+            color="0xC8DAEFFF"
+        />
+
+        <Rectangle
+            id="createBtnShadow"
+            translation="[220, 485]"
+            width="360"
+            height="82"
+            color="0x050D16CC"
+        />
+
+        <Rectangle
+            id="createBtnBg"
+            translation="[212, 476]"
+            width="360"
+            height="82"
+            color="0x1E8FFFFF"
+        />
+
+        <Rectangle
+            id="createBtnGlow"
+            translation="[212, 476]"
+            width="360"
+            height="10"
+            color="0x7DE3FFFF"
+        />
+
+        <Label
+            id="createBtnLabel"
+            text="Create Room"
+            translation="[212, 498]"
+            width="360"
+            height="36"
+            horizAlign="center"
+            wrap="true"
+            color="0x06111DFF"
+        />
+
+        <Label
+            id="createTipLabel"
+            text="Press OK to open a room"
+            translation="[220, 585]"
+            width="360"
+            height="40"
+            horizAlign="center"
+            wrap="true"
+            color="0x7FD8FFFF"
+        />
     </children>
 
     <interface>

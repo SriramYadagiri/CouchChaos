@@ -1,0 +1,12 @@
+<component name="MiniGameContentNode" extends="ContentNode">
+    <interface>
+        <field id="cardkind" type="string" />
+        <field id="bodytext" type="string" />
+        <field id="footertext" type="string" />
+        <field id="cardcolor" type="string" />
+        <field id="votecount" type="string" />
+        <field id="description" type="string" />
+        <field id="cardwidth" type="float" />
+        <field id="cardheight" type="float" />
+    </interface>
+</component>

@@ -6,7 +6,7 @@ function pollRoom()
 
     while true
 
-        url = "http://192.168.86.69:3000/room/" + m.top.roomCode
+        url = "http://192.168.86.69:3000/api/room/" + m.top.roomCode
 
         transfer = CreateObject("roUrlTransfer")
         transfer.SetUrl(url)

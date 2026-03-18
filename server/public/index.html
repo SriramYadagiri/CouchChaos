@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Couch Chaos | Join Room</title>
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="theme-shell">
+    <main class="mobile-shell">
+        <section class="mobile-card hero-card">
+            <p class="brand-pill">COUCH CHAOS</p>
+            <h1 class="page-title">Join The Room</h1>
+            <p class="page-copy">Enter the code from the TV or scan the QR code shown on Roku.</p>
+
+            <div class="form-stack">
+                <label class="field-label" for="code">Room code</label>
+                <input id="code" class="text-input code-input" placeholder="ABCD" maxlength="4" autocomplete="off" autocapitalize="characters" />
+                <button class="primary-btn" onclick="join()">Join Room</button>
+                <p id="error" class="status-error"></p>
+            </div>
+
+            <div class="info-strip">
+                Phones handle game votes and trivia answers. The TV stays in charge of the room.
+            </div>
+        </section>
+    </main>
+
+    <script>
+        async function join() {
+            const code = document.getElementById('code').value.trim().toUpperCase();
+            const errorEl = document.getElementById('error');
+            errorEl.innerText = '';
+
+            if (!code) {
+                errorEl.innerText = 'Enter a room code.';
+                return;
+            }
+
+            const res = await fetch(`/api/room/${code}`);
+            if (!res.ok) {
+                errorEl.innerText = 'Invalid code.';
+                return;
+            }
+
+            window.location.href = `/name.html?code=${code}`;
+        }
+
+        document.getElementById('code').addEventListener('keydown', (event) => {
+            if (event.key === "Enter") join();
+        });
+
+        window.onload = async () => {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            if (!code) return;
+
+            const res = await fetch(`/api/room/${code}`);
+            if (res.ok) {
+                window.location.href = `/name.html?code=${code.toUpperCase()}`;
+            } else {
+                document.getElementById('error').innerText = 'Invalid QR code.';
+            }
+        };
+    </script>
+</body>
+</html>
