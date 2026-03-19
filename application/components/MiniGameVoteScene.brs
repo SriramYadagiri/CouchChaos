@@ -29,12 +29,8 @@ sub onRoomUpdate()
     if room.doesExist("phase") then phase = room.phase
     m.currentPhase = phase
 
-    if phase = "game_select" or phase = "game_selected" then
-        updateGameSelectionView(room)
-    else if phase = "trivia_question" then
-        updateTriviaQuestionView(room)
-    else if phase = "trivia_leaderboard" then
-        updateLeaderboardView(room)
+    if room.doesExist("tvView") and room.tvView <> invalid then
+        updateTvView(room.tvView)
     else
         setGridInteractive(false)
         m.miniGameGrid.content = CreateObject("roSGNode", "ContentNode")
@@ -82,108 +78,64 @@ sub updateFocusedDescription(index as Integer)
     m.descriptionLabel.text = description
 end sub
 
-sub updateGameSelectionView(room as Object)
-    setGridInteractive(true)
-    configureGrid(3, 1, [320, 220], [95, 285])
-    content = CreateObject("roSGNode", "ContentNode")
-    signature = room.phase + "|"
+sub updateTvView(tvView as Object)
+    layout = ""
+    if tvView.doesExist("layout") then layout = tvView.layout
 
-    if room.doesExist("games") and room.games <> invalid then
-        for each miniGame in room.games
-            item = CreateObject("roSGNode", "MiniGameContentNode")
-            item.cardkind = "game_vote"
-            item.title = miniGame.name
-            item.description = miniGame.description
-            item.bodytext = miniGame.name
-            item.cardwidth = 320
-            item.cardheight = 220
-
-            votes = 0
-            if miniGame.doesExist("votes") then votes = miniGame.votes
-            item.votecount = votes.ToStr()
-            item.footertext = votes.ToStr() + " vote(s)"
-            content.appendChild(item)
-            signature = signature + miniGame.name + ":" + votes.ToStr() + "|"
-        end for
-    end if
-
-    updateGridIfNeeded(content, signature)
-
-    m.titleLabel.text = "Vote For The Next Minigame"
-
-    if room.phase = "game_selected" and room.doesExist("selectedGame") and room.selectedGame <> invalid then
-        m.subtitleLabel.text = "Selected minigame: " + room.selectedGame.name
+    if layout = "game_vote" then
+        renderCardGrid(tvView, true, 3, 1, [320, 220], [95, 285], "game_vote")
+    else if layout = "trivia_question" then
+        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 290], "trivia_option")
+    else if layout = "leaderboard" then
+        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 290], "leaderboard")
+    else if layout = "player_grid" then
+        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 290], "leaderboard")
     else
-        m.subtitleLabel.text = "Players vote on their phones. Move focus to preview a game."
-    end if
-
-    if content.getChildCount() > 0 then
-        updateFocusedDescription(m.lastFocusedIndex)
-    else
-        m.descriptionLabel.text = "Waiting for game options..."
+        setGridInteractive(false)
+        m.titleLabel.text = tvView.title
+        m.subtitleLabel.text = tvView.subtitle
+        m.descriptionLabel.text = tvView.description
+        updateGridIfNeeded(CreateObject("roSGNode", "ContentNode"), "message|" + tvView.title + "|" + tvView.subtitle + "|" + tvView.description)
     end if
 end sub
 
-sub updateTriviaQuestionView(room as Object)
-    setGridInteractive(false)
-    configureGrid(2, 2, [520, 160], [95, 290])
-    m.titleLabel.text = "Trivia Toss"
-
-    if room.doesExist("currentQuestion") and room.currentQuestion <> invalid then
-        m.subtitleLabel.text = "Question " + room.currentQuestion.number.ToStr() + " of " + room.currentQuestion.total.ToStr()
-        m.descriptionLabel.text = room.currentQuestion.prompt
-
-        content = CreateObject("roSGNode", "ContentNode")
-        signature = room.currentQuestion.number.ToStr() + "|"
-
-        if room.currentQuestion.doesExist("options") and room.currentQuestion.options <> invalid then
-            for each option in room.currentQuestion.options
-                item = CreateObject("roSGNode", "MiniGameContentNode")
-                item.cardkind = "trivia_option"
-                item.title = ""
-                item.description = option.text
-                item.bodytext = option.text
-                item.footertext = ""
-                item.cardwidth = 520
-                item.cardheight = 160
-                if option.doesExist("cardColor") then item.cardcolor = option.cardColor
-                content.appendChild(item)
-                signature = signature + option.label + ":" + option.text + "|"
-            end for
-        end if
-
-        updateGridIfNeeded(content, signature)
-    else
-        m.subtitleLabel.text = "Trivia Toss"
-        m.descriptionLabel.text = "Waiting for the next question..."
-        updateGridIfNeeded(CreateObject("roSGNode", "ContentNode"), "trivia-waiting")
-    end if
-end sub
-
-sub updateLeaderboardView(room as Object)
-    setGridInteractive(false)
-    configureGrid(2, 2, [520, 160], [95, 290])
+sub renderCardGrid(tvView as Object, interactive as Boolean, numColumns as Integer, numRows as Integer, itemSize as Object, translation as Object, cardKind as String)
+    setGridInteractive(interactive)
+    configureGrid(numColumns, numRows, itemSize, translation)
     content = CreateObject("roSGNode", "ContentNode")
-    signature = "leaderboard|"
+    signature = cardKind + "|"
 
-    if room.doesExist("leaderboard") and room.leaderboard <> invalid then
-        for each entry in room.leaderboard
+    if tvView.doesExist("cards") and tvView.cards <> invalid then
+        for each card in tvView.cards
             item = CreateObject("roSGNode", "MiniGameContentNode")
-            item.cardkind = "leaderboard"
-            item.title = entry.name
+            item.cardkind = cardKind
+            item.title = ""
+            item.description = ""
             item.bodytext = ""
-            item.footertext = entry.score.ToStr() + " pts"
-            item.cardwidth = 520
-            item.cardheight = 160
+            item.footertext = ""
+            if card.doesExist("title") then item.title = card.title
+            if card.doesExist("description") then
+                item.description = card.description
+                item.bodytext = card.description
+            end if
+            if card.doesExist("footer") then item.footertext = card.footer
+            item.cardwidth = itemSize[0]
+            item.cardheight = itemSize[1]
+            if card.doesExist("cardColor") then item.cardcolor = card.cardColor
+            if interactive and card.doesExist("footer") then item.votecount = card.footer
             content.appendChild(item)
-            signature = signature + entry.name + ":" + entry.score.ToStr() + "|"
+            signature = signature + item.title + "|" + item.bodytext + "|" + item.footertext + "|"
         end for
     end if
 
     updateGridIfNeeded(content, signature)
-    m.titleLabel.text = "Trivia Toss Results"
-    m.subtitleLabel.text = "Leaderboard"
-    m.descriptionLabel.text = "Returning to minigame voting shortly."
+    m.titleLabel.text = tvView.title
+    m.subtitleLabel.text = tvView.subtitle
+    m.descriptionLabel.text = tvView.description
+
+    if interactive and content.getChildCount() > 0 then
+        updateFocusedDescription(m.lastFocusedIndex)
+    end if
 end sub
 
 sub configureGrid(numColumns as Integer, numRows as Integer, itemSize as Object, translation as Object)

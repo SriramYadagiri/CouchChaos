@@ -26,43 +26,33 @@
 
 <script>
 const socket = io();
-const TRIVIA_OPTION_STYLES = {
-  red: { label: "Red", background: "#c0392b", color: "#ffffff" },
-  blue: { label: "Blue", background: "#2980b9", color: "#ffffff" },
-  yellow: { label: "Yellow", background: "#d4ac0d", color: "#111111" },
-  green: { label: "Green", background: "#239b56", color: "#ffffff" }
-};
-
-const name = localStorage.getItem('name');
-const code = localStorage.getItem('code');
-let votedGameId = null;
-let votedGameLabel = "";
-let answeredQuestionNumber = null;
-let latestPhase = "";
+const name = localStorage.getItem("name");
+const code = localStorage.getItem("code");
 let latestState = null;
+let latestPrivateState = { gameId: null };
+let votedGameId = null;
+let pendingAction = "";
 
 if (!name || !code) {
-  window.location.href = '/';
+  window.location.href = "/";
 }
 
-document.getElementById('playerChip').innerText = name ? `Player: ${name}` : "";
-document.getElementById('roomChip').innerText = code ? `Room: ${code}` : "";
-
-socket.emit('join_room', { code, name });
+document.getElementById("playerChip").innerText = name ? `Player: ${name}` : "";
+document.getElementById("roomChip").innerText = code ? `Room: ${code}` : "";
 
 function createCard(className = "mobile-card") {
-  const section = document.createElement('section');
+  const section = document.createElement("section");
   section.className = className;
   return section;
 }
 
 function createPhaseMessage(title, body) {
   const card = createCard("mobile-card section-card");
-  const heading = document.createElement('h2');
+  const heading = document.createElement("h2");
   heading.className = "section-title";
   heading.innerText = title;
 
-  const copy = document.createElement('p');
+  const copy = document.createElement("p");
   copy.className = "section-copy";
   copy.innerText = body;
 
@@ -71,208 +61,322 @@ function createPhaseMessage(title, body) {
   return card;
 }
 
-function render(state) {
-  const content = document.getElementById('content');
-  const status = document.getElementById('status');
-  const details = document.getElementById('details');
+function sendGameAction(action, payload, onSuccess) {
+  pendingAction = action;
+  socket.emit("game_action", { code, action, payload }, (response) => {
+    pendingAction = "";
 
-  if (state && state.phase !== latestPhase) {
-    if (state.phase !== "game_select") votedGameId = null;
-    if (state.phase !== "game_select") votedGameLabel = "";
-    if (state.phase !== "trivia_question") answeredQuestionNumber = null;
-    latestPhase = state.phase;
-  }
-
-  content.innerHTML = "";
-  document.body.setAttribute("data-phase", state?.phase || "waiting");
-
-  status.innerText = "Look at the TV";
-  details.innerText = "Waiting for the next prompt.";
-
-  if (!state) return;
-
-  if (state.phase === "game_select") {
-    status.innerText = "Vote for the next game";
-    details.innerText = votedGameId
-      ? (votedGameLabel ? `Vote locked: ${votedGameLabel}` : "Your vote is locked in.")
-      : "Choose a minigame on your phone. The Roku shows the preview.";
-
-    const grid = document.createElement('div');
-    grid.className = "vote-grid";
-
-    state.games.forEach((game) => {
-      const btn = document.createElement('button');
-      const isSelected = votedGameId === game.id;
-      btn.className = `vote-card${isSelected ? ' is-selected' : ''}`;
-      btn.disabled = votedGameId !== null;
-
-      const title = document.createElement('span');
-      title.className = "vote-card-title";
-      title.innerText = game.name;
-
-      const desc = document.createElement('span');
-      desc.className = "vote-card-copy";
-      desc.innerText = game.description || "A new round is about to start.";
-
-      const meta = document.createElement('span');
-      meta.className = "vote-card-meta";
-      meta.innerText = `${game.votes || 0} vote(s)`;
-
-      btn.appendChild(title);
-      btn.appendChild(desc);
-      btn.appendChild(meta);
-
-      btn.onclick = () => {
-        socket.emit("vote_game", { code, gameId: game.id }, (response) => {
-          if (!response?.ok) {
-            details.innerText = response?.error || "Unable to submit vote.";
-            if (response?.error === "Vote already submitted") {
-              votedGameId = "locked";
-              votedGameLabel = "";
-              render(latestState);
-            }
-            return;
-          }
-
-          votedGameId = game.id;
-          votedGameLabel = game.name;
-          render(latestState);
-        });
-      };
-
-      grid.appendChild(btn);
-    });
-
-    content.appendChild(grid);
-  } else if (state.phase === "game_selected") {
-    status.innerText = "Game selected";
-    details.innerText = state.selectedGame
-      ? `${state.selectedGame.name} won the vote.`
-      : "Waiting for the TV.";
-
-    content.appendChild(createPhaseMessage("Round starting", "Watch the TV for the next screen."));
-  } else if (state.phase === "trivia_question") {
-    const question = state.currentQuestion;
-    const questionNumber = question?.number || 0;
-    const answerLocked = answeredQuestionNumber === questionNumber;
-
-    status.innerText = question
-      ? `Question ${question.number} of ${question.total}`
-      : "Trivia Toss";
-    details.innerText = answerLocked
-      ? "Answer submitted. Waiting for the other players."
-      : (question?.prompt || "Waiting for the next question.");
-
-    const promptCard = createCard("mobile-card section-card");
-    const promptLabel = document.createElement('p');
-    promptLabel.className = "question-kicker";
-    promptLabel.innerText = "Choose a color";
-
-    const promptText = document.createElement('p');
-    promptText.className = "question-text";
-    promptText.innerText = question?.prompt || "Waiting for the next question.";
-
-    promptCard.appendChild(promptLabel);
-    promptCard.appendChild(promptText);
-    content.appendChild(promptCard);
-
-    const optionWrap = document.createElement('div');
-    optionWrap.className = "answer-grid";
-
-    const options = Array.isArray(question?.options)
-      ? question.options
-      : Object.values(question?.options || {});
-
-    if (options.length === 0) {
-      content.appendChild(createPhaseMessage("Loading answers", "The answer buttons will appear here."));
+    if (!response?.ok) {
+      document.getElementById("details").innerText = response?.error || "Unable to submit action.";
+      render(latestState, latestPrivateState);
       return;
     }
 
-    options.forEach((option) => {
-      const btn = document.createElement('button');
-      const style = TRIVIA_OPTION_STYLES[option.color] || { label: option.label, background: "#444", color: "#fff" };
-      btn.className = "answer-card";
-      btn.disabled = answerLocked;
-      btn.style.backgroundColor = style.background;
-      btn.style.color = style.color;
+    if (typeof onSuccess === "function") onSuccess();
+    render(latestState, latestPrivateState);
+  });
+}
 
-      const label = document.createElement('span');
-      label.className = "answer-card-title";
-      label.innerText = style.label;
+function renderPrivateCard(content, privateState) {
+  if (!privateState || !privateState.gameId || !privateState.title) return;
 
-      const copy = document.createElement('span');
-      copy.className = "answer-card-copy";
-      copy.innerText = option.text || "";
+  const card = createCard("mobile-card section-card");
+  const heading = document.createElement("h2");
+  heading.className = "section-title";
+  heading.innerText = privateState.title;
 
-      btn.appendChild(label);
-      btn.appendChild(copy);
+  const body = document.createElement("p");
+  body.className = "question-text";
+  body.innerText = privateState.message || "";
 
-      btn.onclick = () => {
-        socket.emit("submit_answer", { code, answerColor: option.color }, (response) => {
-          if (!response?.ok) {
-            details.innerText = response?.error || "Unable to submit answer.";
-            if (response?.error === "Answer already submitted") {
-              answeredQuestionNumber = questionNumber;
-              render(latestState);
-            }
-            return;
-          }
+  card.appendChild(heading);
+  card.appendChild(body);
 
-          answeredQuestionNumber = questionNumber;
-          render(latestState);
-        });
-      };
-
-      optionWrap.appendChild(btn);
-    });
-
-    content.appendChild(optionWrap);
-  } else if (state.phase === "trivia_leaderboard") {
-    status.innerText = "Final leaderboard";
-    details.innerText = "Returning to minigame voting shortly.";
-
-    const board = document.createElement('section');
-    board.className = "mobile-card leaderboard-card";
-
-    const heading = document.createElement('h2');
-    heading.className = "section-title";
-    heading.innerText = "Standings";
-    board.appendChild(heading);
-
-    const list = document.createElement('ol');
-    list.className = "leaderboard-list";
-
-    (state.leaderboard || []).forEach((entry) => {
-      const item = document.createElement('li');
-      item.className = "leaderboard-row";
-
-      const nameEl = document.createElement('span');
-      nameEl.className = "leaderboard-name";
-      nameEl.innerText = entry.name;
-
-      const scoreEl = document.createElement('span');
-      scoreEl.className = "leaderboard-score";
-      scoreEl.innerText = `${entry.score} pts`;
-
-      item.appendChild(nameEl);
-      item.appendChild(scoreEl);
-      list.appendChild(item);
-    });
-
-    board.appendChild(list);
-    content.appendChild(board);
-  } else {
-    content.appendChild(createPhaseMessage("Controller ready", "Look at the TV for the next round."));
+  if (privateState.footer) {
+    const footer = document.createElement("p");
+    footer.className = "section-copy";
+    footer.style.marginTop = "12px";
+    footer.innerText = privateState.footer;
+    card.appendChild(footer);
   }
+
+  content.appendChild(card);
+}
+
+function renderGameVote(content, view, detailsEl) {
+  detailsEl.innerText = votedGameId
+    ? "Your vote is locked in."
+    : (view.details || "Choose a minigame on your phone.");
+
+  const grid = document.createElement("div");
+  grid.className = "vote-grid";
+
+  (view.options || []).forEach((option) => {
+    const btn = document.createElement("button");
+    btn.className = `vote-card${votedGameId === option.id ? " is-selected" : ""}`;
+    btn.disabled = Boolean(votedGameId);
+
+    const title = document.createElement("span");
+    title.className = "vote-card-title";
+    title.innerText = option.label;
+
+    const desc = document.createElement("span");
+    desc.className = "vote-card-copy";
+    desc.innerText = option.description || "";
+
+    const meta = document.createElement("span");
+    meta.className = "vote-card-meta";
+    meta.innerText = option.meta || "";
+
+    btn.appendChild(title);
+    btn.appendChild(desc);
+    btn.appendChild(meta);
+
+    btn.onclick = () => {
+      socket.emit("vote_game", { code, gameId: option.id }, (response) => {
+        if (!response?.ok) {
+          detailsEl.innerText = response?.error || "Unable to submit vote.";
+          render(latestState, latestPrivateState);
+          return;
+        }
+
+        votedGameId = option.id;
+        render(latestState, latestPrivateState);
+      });
+    };
+
+    grid.appendChild(btn);
+  });
+
+  content.appendChild(grid);
+}
+
+function renderAnswerGrid(content, view) {
+  const promptCard = createCard("mobile-card section-card");
+  const promptLabel = document.createElement("p");
+  promptLabel.className = "question-kicker";
+  promptLabel.innerText = "Choose an answer";
+
+  const promptText = document.createElement("p");
+  promptText.className = "question-text";
+  promptText.innerText = view.details || "Waiting for the next question.";
+
+  promptCard.appendChild(promptLabel);
+  promptCard.appendChild(promptText);
+  content.appendChild(promptCard);
+
+  const optionWrap = document.createElement("div");
+  optionWrap.className = "answer-grid";
+
+  (view.options || []).forEach((option) => {
+    const btn = document.createElement("button");
+    btn.className = "answer-card";
+    btn.disabled = pendingAction === option.action;
+    btn.style.backgroundColor = option.background || "#1b496e";
+    btn.style.color = option.color || "#ffffff";
+
+    const label = document.createElement("span");
+    label.className = "answer-card-title";
+    label.innerText = option.label;
+
+    const copy = document.createElement("span");
+    copy.className = "answer-card-copy";
+    copy.innerText = option.description || "";
+
+    btn.appendChild(label);
+    btn.appendChild(copy);
+    btn.onclick = () => sendGameAction(option.action, option.payload);
+    optionWrap.appendChild(btn);
+  });
+
+  content.appendChild(optionWrap);
+}
+
+function renderLeaderboard(content, view) {
+  const board = document.createElement("section");
+  board.className = "mobile-card leaderboard-card";
+
+  const heading = document.createElement("h2");
+  heading.className = "section-title";
+  heading.innerText = view.title || "Standings";
+  board.appendChild(heading);
+
+  const list = document.createElement("ol");
+  list.className = "leaderboard-list";
+
+  (view.items || []).forEach((entry) => {
+    const item = document.createElement("li");
+    item.className = "leaderboard-row";
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "leaderboard-name";
+    nameEl.innerText = entry.label;
+
+    const valueEl = document.createElement("span");
+    valueEl.className = "leaderboard-score";
+    valueEl.innerText = entry.value || "";
+
+    item.appendChild(nameEl);
+    item.appendChild(valueEl);
+    list.appendChild(item);
+  });
+
+  board.appendChild(list);
+  content.appendChild(board);
+}
+
+function renderImposterRound(content, view, privateState) {
+  renderPrivateCard(content, privateState);
+  content.appendChild(createPhaseMessage("Hint round", view.details || "Give one spoken hint."));
+
+  const actionCard = createCard("mobile-card section-card");
+  const actionTitle = document.createElement("h2");
+  actionTitle.className = "section-title";
+  actionTitle.innerText = "Actions";
+  actionCard.appendChild(actionTitle);
+
+  if (view.canAdvanceTurn) {
+    const nextTurnBtn = document.createElement("button");
+    nextTurnBtn.className = "primary-btn";
+    nextTurnBtn.style.marginTop = "16px";
+    nextTurnBtn.innerText = "Pass Turn";
+    nextTurnBtn.onclick = () => sendGameAction("advance_turn", {});
+    actionCard.appendChild(nextTurnBtn);
+  }
+
+  if (view.canStartVote) {
+    const voteBtn = document.createElement("button");
+    voteBtn.className = "primary-btn";
+    voteBtn.style.marginTop = "16px";
+    voteBtn.innerText = "Start Voting";
+    voteBtn.onclick = () => sendGameAction("start_vote", {});
+    actionCard.appendChild(voteBtn);
+  }
+
+  content.appendChild(actionCard);
+
+  const board = document.createElement("section");
+  board.className = "mobile-card leaderboard-card";
+
+  const heading = document.createElement("h2");
+  heading.className = "section-title";
+  heading.innerText = "Players";
+  board.appendChild(heading);
+
+  const list = document.createElement("ol");
+  list.className = "leaderboard-list";
+
+  (view.players || []).forEach((player) => {
+    const item = document.createElement("li");
+    item.className = "leaderboard-row";
+
+    const nameEl = document.createElement("span");
+    nameEl.className = "leaderboard-name";
+    nameEl.innerText = player.name;
+
+    const valueEl = document.createElement("span");
+    valueEl.className = "leaderboard-score";
+    valueEl.innerText = player.id === view.currentSpeakerId ? "Speaking" : (player.isEliminated ? "Out" : "Ready");
+
+    item.appendChild(nameEl);
+    item.appendChild(valueEl);
+    list.appendChild(item);
+  });
+
+  board.appendChild(list);
+  content.appendChild(board);
+}
+
+function renderPlayerVote(content, view, privateState) {
+  renderPrivateCard(content, privateState);
+
+  const grid = document.createElement("div");
+  grid.className = "vote-grid";
+
+  (view.players || []).forEach((player) => {
+    const btn = document.createElement("button");
+    btn.className = "vote-card";
+    btn.disabled = Boolean(pendingAction) || player.disabled;
+
+    const title = document.createElement("span");
+    title.className = "vote-card-title";
+    title.innerText = player.label;
+
+    const meta = document.createElement("span");
+    meta.className = "vote-card-meta";
+    meta.innerText = player.value || "";
+
+    btn.appendChild(title);
+    btn.appendChild(meta);
+    btn.onclick = () => sendGameAction("cast_vote", { targetPlayerId: player.id });
+    grid.appendChild(btn);
+  });
+
+  content.appendChild(grid);
+}
+
+const renderers = {
+  message(content, view, privateState) {
+    renderPrivateCard(content, privateState);
+    content.appendChild(createPhaseMessage(view.title || "Controller ready", view.details || "Look at the TV for the next round."));
+  },
+  game_vote(content, view, privateState, detailsEl) {
+    renderPrivateCard(content, privateState);
+    renderGameVote(content, view, detailsEl);
+  },
+  answer_grid(content, view, privateState) {
+    renderPrivateCard(content, privateState);
+    renderAnswerGrid(content, view);
+  },
+  leaderboard(content, view, privateState) {
+    renderPrivateCard(content, privateState);
+    renderLeaderboard(content, view);
+  },
+  imposter_round(content, view, privateState) {
+    renderImposterRound(content, view, privateState);
+  },
+  player_vote(content, view, privateState) {
+    renderPlayerVote(content, view, privateState);
+  }
+};
+
+function render(state, privateState = {}) {
+  const content = document.getElementById("content");
+  const status = document.getElementById("status");
+  const details = document.getElementById("details");
+  const view = state?.controllerView || {
+    layout: "message",
+    title: "Look at the TV",
+    details: "Waiting for the next prompt."
+  };
+
+  content.innerHTML = "";
+  document.body.setAttribute("data-phase", state?.phase || "waiting");
+  status.innerText = view.title || "Look at the TV";
+  details.innerText = view.details || "Waiting for the next prompt.";
+
+  const renderer = renderers[view.layout] || renderers.message;
+  renderer(content, view, privateState, details);
 }
 
 socket.on("connect", () => {
-  document.getElementById('status').innerText = "Connected";
+  socket.emit("join_room", { code, name });
+  document.getElementById("status").innerText = "Connected";
 });
 
 socket.on("game_state", (state) => {
   latestState = state;
-  render(latestState);
+
+  if (state?.phase !== "game_select") {
+    votedGameId = null;
+  }
+
+  render(latestState, latestPrivateState);
+});
+
+socket.on("private_state", (privateState) => {
+  latestPrivateState = privateState || { gameId: null };
+  render(latestState, latestPrivateState);
 });
 
 socket.on("error_message", (msg) => {
