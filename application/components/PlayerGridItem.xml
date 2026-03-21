@@ -20,11 +20,20 @@
 
         <Label
             id="playerName"
-            translation="[18, 28]"
+            translation="[18, 18]"
             width="184"
-            height="42"
+            height="36"
             horizAlign="center"
             color="0xFFFFFFFF"
+        />
+
+        <Label
+            id="statusLabel"
+            translation="[18, 58]"
+            width="184"
+            height="24"
+            horizAlign="center"
+            color="0xBFD8EAFF"
         />
     </children>
 

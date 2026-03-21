@@ -1,4 +1,7 @@
 const BaseGame = require("./BaseGame");
+const QUESTION_DURATION_MS = 6000;
+const MIN_CORRECT_POINTS = 250;
+const MAX_SPEED_BONUS = 750;
 
 const TRIVIA_OPTION_COLORS = {
   red: { label: "Red", cardColor: "0xC0392BFF", background: "#c0392b", color: "#ffffff" },
@@ -73,7 +76,8 @@ class TriviaTossGame extends BaseGame {
       currentQuestion: null,
       playerAnswers: {},
       scores: {},
-      leaderboard: []
+      leaderboard: [],
+      lastQuestionResults: {}
     };
   }
 
@@ -83,6 +87,7 @@ class TriviaTossGame extends BaseGame {
     this.state.playerAnswers = {};
     this.state.leaderboard = [];
     this.state.scores = {};
+    this.state.lastQuestionResults = {};
 
     for (const player of this.getPlayers()) {
       this.state.scores[player.id] = 0;
@@ -101,6 +106,11 @@ class TriviaTossGame extends BaseGame {
       this.state.playerAnswers[nextId] = this.state.playerAnswers[previousId];
       delete this.state.playerAnswers[previousId];
     }
+
+    if (this.state.lastQuestionResults[previousId]) {
+      this.state.lastQuestionResults[nextId] = this.state.lastQuestionResults[previousId];
+      delete this.state.lastQuestionResults[previousId];
+    }
   }
 
   onPlayerJoined(player) {
@@ -112,6 +122,7 @@ class TriviaTossGame extends BaseGame {
   onPlayerLeft(playerId) {
     delete this.state.playerAnswers[playerId];
     delete this.state.scores[playerId];
+    delete this.state.lastQuestionResults[playerId];
     this.maybeAdvanceQuestion();
   }
 
@@ -162,20 +173,77 @@ class TriviaTossGame extends BaseGame {
       return;
     }
 
+    this.resolveCurrentQuestion();
+  }
+
+  resolveCurrentQuestion() {
+    if (!this.state.currentQuestion) return;
+
+    this.clearTimer("question-deadline");
+
     const question = QUESTION_BANK[this.state.currentQuestion.number - 1];
     const correctAnswer = normalizeAnswer(question.correctColor);
+    const activePlayerIds = this.getPlayers().map((player) => player.id);
+    const questionStartTime = this.state.currentQuestion.startedAt || Date.now();
+    const questionDeadline = this.state.currentQuestion.endsAt || (questionStartTime + QUESTION_DURATION_MS);
+    const leaderboard = this.buildLeaderboard();
+    const placeByPlayerId = {};
+
+    leaderboard.forEach((entry, index) => {
+      placeByPlayerId[entry.id] = index + 1;
+    });
 
     for (const playerId of activePlayerIds) {
-      const submittedAnswer = normalizeAnswer(this.state.playerAnswers[playerId]?.answerColor);
-      if (submittedAnswer === correctAnswer) {
-        this.state.scores[playerId] = (this.state.scores[playerId] || 0) + 1;
-      }
+      const answer = this.state.playerAnswers[playerId];
+      const submittedAnswer = normalizeAnswer(answer?.answerColor);
+      const isCorrect = submittedAnswer === correctAnswer;
+      const elapsedMs = answer ? Math.max(0, answer.submittedAt - questionStartTime) : QUESTION_DURATION_MS;
+      const pointsEarned = isCorrect
+        ? this.calculatePoints(answer.submittedAt, questionStartTime, questionDeadline)
+        : 0;
+
+      this.state.scores[playerId] = (this.state.scores[playerId] || 0) + pointsEarned;
+    }
+
+    const updatedLeaderboard = this.buildLeaderboard();
+    const updatedPlaceByPlayerId = {};
+    updatedLeaderboard.forEach((entry, index) => {
+      updatedPlaceByPlayerId[entry.id] = index + 1;
+    });
+
+    for (const playerId of activePlayerIds) {
+      const answer = this.state.playerAnswers[playerId];
+      const submittedAnswer = normalizeAnswer(answer?.answerColor);
+      const isCorrect = submittedAnswer === correctAnswer;
+      const pointsEarned = isCorrect
+        ? this.calculatePoints(answer.submittedAt, questionStartTime, questionDeadline)
+        : 0;
+      const responseTimeMs = answer ? Math.max(0, answer.submittedAt - questionStartTime) : QUESTION_DURATION_MS;
+
+      this.state.lastQuestionResults[playerId] = {
+        questionNumber: this.state.currentQuestion.number,
+        wasCorrect: isCorrect,
+        pointsEarned,
+        totalPoints: this.state.scores[playerId] || 0,
+        place: updatedPlaceByPlayerId[playerId] || updatedLeaderboard.length,
+        responseTimeMs,
+        timedOut: !answer
+      };
     }
 
     this.advanceQuestion();
   }
 
+  calculatePoints(submittedAt, startedAt, endsAt) {
+    const timeRemainingMs = Math.max(0, endsAt - submittedAt);
+    const questionDurationMs = Math.max(1, endsAt - startedAt);
+    const speedBonus = Math.round((timeRemainingMs / questionDurationMs) * MAX_SPEED_BONUS);
+    return MIN_CORRECT_POINTS + speedBonus;
+  }
+
   advanceQuestion() {
+    this.clearTimer("question-deadline");
+
     if (this.state.questionIndex >= QUESTION_BANK.length) {
       this.setPhase("trivia_leaderboard");
       this.state.currentQuestion = null;
@@ -192,15 +260,25 @@ class TriviaTossGame extends BaseGame {
     }
 
     const question = QUESTION_BANK[this.state.questionIndex];
+    const startedAt = Date.now();
+    const endsAt = startedAt + QUESTION_DURATION_MS;
     this.setPhase("trivia_question");
     this.state.currentQuestion = {
       prompt: question.prompt,
       number: this.state.questionIndex + 1,
       total: QUESTION_BANK.length,
-      options: buildTriviaOptions(question)
+      options: buildTriviaOptions(question),
+      startedAt,
+      endsAt,
+      durationMs: QUESTION_DURATION_MS
     };
     this.state.playerAnswers = {};
     this.state.questionIndex += 1;
+    this.schedule("question-deadline", QUESTION_DURATION_MS, () => {
+      if (this.room.phase === "trivia_question") {
+        this.resolveCurrentQuestion();
+      }
+    });
     this.emitRoomState();
   }
 
@@ -231,6 +309,8 @@ class TriviaTossGame extends BaseGame {
         title: "Trivia Toss",
         subtitle: `Question ${this.state.currentQuestion.number} of ${this.state.currentQuestion.total}`,
         description: this.state.currentQuestion.prompt,
+        questionEndsAt: this.state.currentQuestion.endsAt,
+        questionDurationMs: this.state.currentQuestion.durationMs,
         cards: this.state.currentQuestion.options.map((option) => ({
           title: option.label,
           description: option.text,
@@ -257,12 +337,18 @@ class TriviaTossGame extends BaseGame {
     return null;
   }
 
-  getControllerView() {
+  getControllerView(playerId) {
+    const latestResult = playerId ? this.state.lastQuestionResults[playerId] : null;
+
     if (this.room.phase === "trivia_question") {
       return {
         layout: "answer_grid",
         title: `Question ${this.state.currentQuestion.number} of ${this.state.currentQuestion.total}`,
         details: this.state.currentQuestion.prompt,
+        questionEndsAt: this.state.currentQuestion.endsAt,
+        questionDurationMs: this.state.currentQuestion.durationMs,
+        playerScore: playerId ? (this.state.scores[playerId] || 0) : 0,
+        latestResult,
         options: this.state.currentQuestion.options.map((option) => ({
           id: option.color,
           label: option.label,
@@ -282,6 +368,7 @@ class TriviaTossGame extends BaseGame {
         layout: "leaderboard",
         title: "Final leaderboard",
         details: "Returning to minigame voting shortly.",
+        latestResult,
         items: this.state.leaderboard.map((entry) => ({
           id: entry.id,
           label: entry.name,

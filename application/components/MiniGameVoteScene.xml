@@ -2,6 +2,7 @@
     <interface>
         <field id="sceneManager" type="node" />
         <field id="roomCode" type="string" />
+        <function name="cleanup" />
     </interface>
 
     <children>
@@ -63,6 +64,64 @@
             color="0xFFFFFFFF"
         />
 
+        <Rectangle
+            id="timerTrack"
+            translation="[90, 222]"
+            width="1070"
+            height="14"
+            color="0x24415EFF"
+            visible="false"
+        />
+
+        <Rectangle
+            id="timerFill"
+            translation="[90, 222]"
+            width="1070"
+            height="14"
+            color="0x27C2FFFF"
+            visible="false"
+        />
+
+        <Timer
+            id="triviaTimer"
+            repeat="true"
+            duration="0.1"
+        />
+
+        <Rectangle
+            id="backBtnShadow"
+            translation="[68, 42]"
+            width="190"
+            height="54"
+            color="0x050D16CC"
+        />
+
+        <Rectangle
+            id="backBtnBg"
+            translation="[60, 34]"
+            width="190"
+            height="54"
+            color="0x224563FF"
+        />
+
+        <Rectangle
+            id="backBtnGlow"
+            translation="[60, 34]"
+            width="190"
+            height="10"
+            color="0x7DA8CCFF"
+        />
+
+        <Label
+            id="backBtnLabel"
+            text="Back To Lobby"
+            translation="[60, 49]"
+            width="190"
+            height="28"
+            horizAlign="center"
+            color="0xDCEBFAFF"
+        />
+
         <MarkupGrid
             id="miniGameGrid"
             itemComponentName="MiniGameItem"
@@ -73,6 +132,44 @@
             numRows="1"
             layoutDirection="horiz"
             drawFocusFeedback="true"
+        />
+
+        <Rectangle
+            id="returnVoteBtnShadow"
+            translation="[890, 626]"
+            width="300"
+            height="56"
+            color="0x050D16CC"
+            visible="false"
+        />
+
+        <Rectangle
+            id="returnVoteBtnBg"
+            translation="[882, 618]"
+            width="300"
+            height="56"
+            color="0x1E8FFFFF"
+            visible="false"
+        />
+
+        <Rectangle
+            id="returnVoteBtnGlow"
+            translation="[882, 618]"
+            width="300"
+            height="10"
+            color="0x7DE3FFFF"
+            visible="false"
+        />
+
+        <Label
+            id="returnVoteBtnLabel"
+            text="Return To Game Vote"
+            translation="[882, 633]"
+            width="300"
+            height="28"
+            horizAlign="center"
+            color="0x06111DFF"
+            visible="false"
         />
     </children>
 

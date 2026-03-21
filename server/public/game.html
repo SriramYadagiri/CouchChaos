@@ -28,13 +28,24 @@
 const socket = io();
 const name = localStorage.getItem("name");
 const code = localStorage.getItem("code");
+let clientId = localStorage.getItem("clientId");
 let latestState = null;
 let latestPrivateState = { gameId: null };
 let votedGameId = null;
 let pendingAction = "";
+let countdownTimerId = null;
 
 if (!name || !code) {
   window.location.href = "/";
+}
+
+if (!clientId) {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") {
+    clientId = window.crypto.randomUUID();
+  } else {
+    clientId = `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+  localStorage.setItem("clientId", clientId);
 }
 
 document.getElementById("playerChip").innerText = name ? `Player: ${name}` : "";
@@ -59,6 +70,60 @@ function createPhaseMessage(title, body) {
   card.appendChild(heading);
   card.appendChild(copy);
   return card;
+}
+
+function stopCountdownTimer() {
+  if (!countdownTimerId) return;
+  window.clearInterval(countdownTimerId);
+  countdownTimerId = null;
+}
+
+function formatPlace(place) {
+  const value = Number(place || 0);
+  if (value % 100 >= 11 && value % 100 <= 13) return `${value}th`;
+  if (value % 10 === 1) return `${value}st`;
+  if (value % 10 === 2) return `${value}nd`;
+  if (value % 10 === 3) return `${value}rd`;
+  return `${value}th`;
+}
+
+function renderTriviaResult(content, latestResult) {
+  if (!latestResult) return;
+
+  const card = createCard("mobile-card section-card");
+  const heading = document.createElement("h2");
+  heading.className = "section-title";
+  heading.innerText = latestResult.wasCorrect ? `+${latestResult.pointsEarned} points` : "0 points";
+
+  const body = document.createElement("p");
+  body.className = "section-copy";
+  body.innerText = latestResult.timedOut
+    ? `Time ran out. Total: ${latestResult.totalPoints} pts • Place: ${formatPlace(latestResult.place)}`
+    : (latestResult.wasCorrect
+      ? `Correct in ${Math.max(0, Math.round(latestResult.responseTimeMs / 100) / 10)}s. Total: ${latestResult.totalPoints} pts • Place: ${formatPlace(latestResult.place)}`
+      : `Wrong answer. Total: ${latestResult.totalPoints} pts • Place: ${formatPlace(latestResult.place)}`);
+
+  card.appendChild(heading);
+  card.appendChild(body);
+  content.appendChild(card);
+}
+
+function attachCountdown(detailsEl, questionEndsAt) {
+  stopCountdownTimer();
+  if (!questionEndsAt) return;
+
+  const updateCountdown = () => {
+    const remainingMs = Math.max(0, questionEndsAt - Date.now());
+    const seconds = (remainingMs / 1000).toFixed(1);
+    detailsEl.innerText = `Choose quickly. ${seconds}s left`;
+    if (remainingMs <= 0) {
+      stopCountdownTimer();
+      detailsEl.innerText = "Time is up. Waiting for results.";
+    }
+  };
+
+  updateCountdown();
+  countdownTimerId = window.setInterval(updateCountdown, 100);
 }
 
 function sendGameAction(action, payload, onSuccess) {
@@ -152,6 +217,8 @@ function renderGameVote(content, view, detailsEl) {
 }
 
 function renderAnswerGrid(content, view) {
+  renderTriviaResult(content, view.latestResult);
+
   const promptCard = createCard("mobile-card section-card");
   const promptLabel = document.createElement("p");
   promptLabel.className = "question-kicker";
@@ -193,6 +260,8 @@ function renderAnswerGrid(content, view) {
 }
 
 function renderLeaderboard(content, view) {
+  renderTriviaResult(content, view.latestResult);
+
   const board = document.createElement("section");
   board.className = "mobile-card leaderboard-card";
 
@@ -357,11 +426,29 @@ function render(state, privateState = {}) {
 
   const renderer = renderers[view.layout] || renderers.message;
   renderer(content, view, privateState, details);
+
+  if (view.layout === "answer_grid") {
+    attachCountdown(details, view.questionEndsAt);
+  } else {
+    stopCountdownTimer();
+  }
 }
 
 socket.on("connect", () => {
-  socket.emit("join_room", { code, name });
+  socket.emit("join_room", { code, name, clientId });
   document.getElementById("status").innerText = "Connected";
+});
+
+socket.on("player_identity", (identity) => {
+  if (identity?.clientId) {
+    clientId = identity.clientId;
+    localStorage.setItem("clientId", identity.clientId);
+  }
+
+  if (identity?.name) {
+    localStorage.setItem("name", identity.name);
+    document.getElementById("playerChip").innerText = `Player: ${identity.name}`;
+  }
 });
 
 socket.on("game_state", (state) => {
@@ -381,6 +468,12 @@ socket.on("private_state", (privateState) => {
 
 socket.on("error_message", (msg) => {
   alert(msg);
+  if (msg === "That name is already taken") {
+    localStorage.removeItem("name");
+    window.location.href = `/name.html?code=${encodeURIComponent(code)}`;
+    return;
+  }
+
   window.location.href = "/";
 });
 </script>

@@ -25,7 +25,23 @@
     <script>
         const params = new URLSearchParams(window.location.search);
         const code = (params.get('code') || '').toUpperCase();
+        const existingName = localStorage.getItem('name') || '';
         document.getElementById('roomPreview').innerText = code ? `Joining room ${code}` : 'Missing room code.';
+        document.getElementById('name').value = existingName;
+
+        function getOrCreateClientId() {
+            let clientId = localStorage.getItem('clientId');
+            if (clientId) return clientId;
+
+            if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+                clientId = window.crypto.randomUUID();
+            } else {
+                clientId = `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+            }
+
+            localStorage.setItem('clientId', clientId);
+            return clientId;
+        }
 
         function submitName() {
             const name = document.getElementById('name').value.trim();
@@ -42,6 +58,7 @@
                 return;
             }
 
+            getOrCreateClientId();
             localStorage.setItem('name', name);
             localStorage.setItem('code', code);
             window.location.href = '/game.html';

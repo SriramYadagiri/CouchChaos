@@ -71,13 +71,19 @@ app.get("/game", (req, res) => {
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
 
-  socket.on("join_room", ({ code, name }) => {
+  socket.on("join_room", ({ code, name, clientId }) => {
     const roomCode = String(code || "").toUpperCase();
-    const result = gameManager.joinRoom(roomCode, socket, name);
+    const result = gameManager.joinRoom(roomCode, socket, name, clientId);
 
     if (!result.ok) {
       socket.emit("error_message", result.error);
+      return;
     }
+
+    socket.emit("player_identity", {
+      clientId: result.player.clientId,
+      name: result.player.name
+    });
   });
 
   socket.on("vote_game", ({ code, gameId }, ack) => {

@@ -1,4 +1,22 @@
 const gameCatalog = require("./config/gameCatalog");
+const RECONNECT_GRACE_MS = 60000;
+
+function normalizeName(name) {
+  return String(name || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function formatDisplayName(name) {
+  const normalized = normalizeName(name);
+  if (!normalized) return "";
+
+  return normalized
+    .split(" ")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
 
 class GameManager {
   constructor({ io, gameRegistry }) {
@@ -33,25 +51,49 @@ class GameManager {
     }));
   }
 
-  joinRoom(code, socket, name) {
+  joinRoom(code, socket, name, clientId) {
     const room = this.getRoom(code);
     if (!room) {
       return { ok: false, error: "Invalid room" };
     }
 
-    const existingPlayer = room.players.find((player) => player.name === name);
+    const normalizedName = normalizeName(name);
+    const displayName = formatDisplayName(name);
+
+    if (!normalizedName) {
+      return { ok: false, error: "Enter a valid name" };
+    }
+
+    if (!clientId) {
+      return { ok: false, error: "Missing client ID" };
+    }
+
+    const existingPlayer = room.players.find((player) => player.clientId === clientId);
+    const duplicateNamePlayer = room.players.find((player) => (
+      player.normalizedName === normalizedName && player.clientId !== clientId
+    ));
+
+    if (duplicateNamePlayer) {
+      return { ok: false, error: "That name is already taken" };
+    }
+
     socket.join(code);
 
     if (existingPlayer) {
       const previousId = existingPlayer.id;
+      this.clearDisconnectTimer(existingPlayer);
       existingPlayer.id = socket.id;
+      existingPlayer.isConnected = true;
+      existingPlayer.disconnectedAt = null;
+      existingPlayer.name = displayName;
+      existingPlayer.normalizedName = normalizedName;
 
-      if (room.gameVotes[previousId]) {
+      if (previousId && room.gameVotes[previousId]) {
         room.gameVotes[socket.id] = room.gameVotes[previousId];
         delete room.gameVotes[previousId];
       }
 
-      if (room.activeGame) {
+      if (room.activeGame && previousId && previousId !== socket.id) {
         room.activeGame.onPlayerIdChanged(previousId, socket.id);
       }
 
@@ -62,7 +104,12 @@ class GameManager {
 
     const player = {
       id: socket.id,
-      name
+      clientId,
+      name: displayName,
+      normalizedName,
+      isConnected: true,
+      disconnectedAt: null,
+      disconnectTimer: null
     };
 
     room.players.push(player);
@@ -81,18 +128,9 @@ class GameManager {
       const player = room.players.find((entry) => entry.id === socketId);
       if (!player) continue;
 
-      room.players = room.players.filter((entry) => entry.id !== socketId);
-      delete room.gameVotes[socketId];
-
-      if (room.activeGame) {
-        room.activeGame.onPlayerLeft(socketId);
-      }
-
-      if (room.phase === "game_select") {
-        this.tallyVotes(room);
-        this.maybeFinalizeGameVote(room.code);
-      }
-
+      player.isConnected = false;
+      player.disconnectedAt = Date.now();
+      this.scheduleDisconnectRemoval(room.code, player);
       this.emitPlayersUpdate(room.code);
       this.emitRoomState(room.code);
       break;
@@ -248,7 +286,8 @@ class GameManager {
 
     this.io.to(code).emit("players_update", room.players.map((player) => ({
       id: player.id,
-      name: player.name
+      name: player.name,
+      isConnected: player.isConnected
     })));
   }
 
@@ -256,7 +295,7 @@ class GameManager {
     const room = this.getRoom(code);
     if (!room) return;
 
-    for (const player of room.players) {
+    for (const player of room.players.filter((entry) => entry.isConnected)) {
       const controllerState = this.buildControllerStateForPlayer(room, player.id);
       const privateState = room.activeGame
         ? room.activeGame.getPrivateState(player.id)
@@ -280,7 +319,8 @@ class GameManager {
       phase: room.phase,
       players: room.players.map((player) => ({
         id: player.id,
-        name: player.name
+        name: player.name,
+        isConnected: player.isConnected
       })),
       games: room.games,
       selectedGame: room.selectedGame,
@@ -300,6 +340,8 @@ class GameManager {
   }
 
   buildManagerTvView(room) {
+    const connectedCount = room.players.filter((player) => player.isConnected).length;
+
     if (room.phase === "game_select") {
       return {
         layout: "game_vote",
@@ -332,8 +374,8 @@ class GameManager {
       layout: "message",
       title: "Vote For The Next Minigame",
       subtitle: "Waiting for the next round.",
-      description: room.players.length > 0
-        ? `${room.players.length} player(s) connected.`
+      description: connectedCount > 0
+        ? `${connectedCount} player(s) connected.`
         : "Create a room and have players join."
     };
   }
@@ -368,6 +410,43 @@ class GameManager {
       title: "Look at the TV",
       details: "Waiting for the next prompt."
     };
+  }
+
+  scheduleDisconnectRemoval(code, player) {
+    this.clearDisconnectTimer(player);
+    player.disconnectTimer = setTimeout(() => {
+      player.disconnectTimer = null;
+      this.finalizePlayerRemoval(code, player.clientId);
+    }, RECONNECT_GRACE_MS);
+  }
+
+  clearDisconnectTimer(player) {
+    if (!player?.disconnectTimer) return;
+    clearTimeout(player.disconnectTimer);
+    player.disconnectTimer = null;
+  }
+
+  finalizePlayerRemoval(code, clientId) {
+    const room = this.getRoom(code);
+    if (!room) return;
+
+    const player = room.players.find((entry) => entry.clientId === clientId);
+    if (!player || player.isConnected) return;
+
+    room.players = room.players.filter((entry) => entry.clientId !== clientId);
+    delete room.gameVotes[player.id];
+
+    if (room.activeGame) {
+      room.activeGame.onPlayerLeft(player.id);
+    }
+
+    if (room.phase === "game_select") {
+      this.tallyVotes(room);
+      this.maybeFinalizeGameVote(room.code);
+    }
+
+    this.emitPlayersUpdate(room.code);
+    this.emitRoomState(room.code);
   }
 }
 

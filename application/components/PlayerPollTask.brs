@@ -3,8 +3,7 @@ sub init()
 end sub
 
 function pollRoom()
-
-    while true
+    while m.top.control <> "stop"
 
         url = "http://192.168.86.69:3000/api/room/" + m.top.roomCode
 
@@ -21,6 +20,7 @@ function pollRoom()
             m.top.roomState = data
         end if
 
+        if m.top.control = "stop" then exit while
         sleep(500)
 
     end while

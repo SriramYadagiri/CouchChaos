@@ -5,7 +5,13 @@ end sub
 
 sub showMainMenu()
     print "showMainMenu called"
-    
+
+    cleanupCurrentChild()
+
+    while m.top.getChildCount() > 0
+        m.top.removeChild(m.top.getChild(0))
+    end while
+
     menu = CreateObject("roSGNode", "MainMenu")
     menu.sceneManager = m.top
 
@@ -15,6 +21,8 @@ end sub
 
 sub goToLobby(code as String)
     print "Go to Lobby Called"
+
+    cleanupCurrentChild()
 
     while m.top.getChildCount() > 0
         m.top.removeChild(m.top.getChild(0))
@@ -29,6 +37,8 @@ sub goToLobby(code as String)
 end sub
 
 sub showMiniGameVote(code as String)
+    cleanupCurrentChild()
+
     while m.top.getChildCount() > 0
         m.top.removeChild(m.top.getChild(0))
     end while
@@ -39,4 +49,13 @@ sub showMiniGameVote(code as String)
 
     m.top.appendChild(miniGameVote)
     miniGameVote.setFocus(true)
+end sub
+
+sub cleanupCurrentChild()
+    if m.top.getChildCount() <= 0 then return
+
+    child = m.top.getChild(0)
+    if child = invalid then return
+
+    child.callFunc("cleanup")
 end sub
