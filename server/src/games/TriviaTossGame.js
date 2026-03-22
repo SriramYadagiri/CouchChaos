@@ -344,6 +344,7 @@ class TriviaTossGame extends BaseGame {
       return {
         layout: "answer_grid",
         title: `Question ${this.state.currentQuestion.number} of ${this.state.currentQuestion.total}`,
+        questionNumber: this.state.currentQuestion.number,
         details: this.state.currentQuestion.prompt,
         questionEndsAt: this.state.currentQuestion.endsAt,
         questionDurationMs: this.state.currentQuestion.durationMs,

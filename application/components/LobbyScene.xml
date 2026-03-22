@@ -6,58 +6,26 @@
     </interface>
 
     <children>
-        <Rectangle
-            id="background"
-            width="1280"
-            height="720"
-            color="0x07111FFF"
-        />
-
-        <Rectangle
-            id="backBtnShadow"
-            translation="[68, 42]"
-            width="190"
-            height="54"
-            color="0x050D16CC"
-        />
-
-        <Rectangle
-            id="backBtnBg"
-            translation="[60, 34]"
-            width="190"
-            height="54"
-            color="0x224563FF"
-        />
-
-        <Rectangle
-            id="backBtnGlow"
-            translation="[60, 34]"
-            width="190"
-            height="10"
-            color="0x7DA8CCFF"
-        />
-
-        <Label
-            id="backBtnLabel"
-            text="Back To Menu"
-            translation="[60, 49]"
-            width="190"
-            height="28"
-            horizAlign="center"
-            color="0xDCEBFAFF"
+        <AppChrome
+            id="chrome"
+            title="Room Lobby"
+            subtitle="Players appear on the right as they connect."
+            bodyText=""
+            showBackButton="true"
+            backLabel="Back To Menu"
         />
 
         <Rectangle
             id="leftCard"
-            translation="[70, 90]"
+            translation="[70, 210]"
             width="340"
-            height="560"
+            height="485"
             color="0x12263DFF"
         />
 
         <Rectangle
             id="leftAccent"
-            translation="[70, 90]"
+            translation="[70, 210]"
             width="340"
             height="10"
             color="0x27C2FFFF"
@@ -65,16 +33,16 @@
 
         <Rectangle
             id="rightCard"
-            translation="[450, 90]"
+            translation="[450, 210]"
             width="760"
-            height="560"
+            height="485"
             color="0x0E2034FF"
         />
 
         <!-- LEFT PANEL -->
         <Group
             id="leftPanel"
-            translation="[100, 102]"
+            translation="[100, 232]"
         >
             <Label
                 id="roomCodeTitle"
@@ -83,6 +51,7 @@
                 width="200"
                 height="32"
                 wrap="true"
+                font="font:SmallBoldSystemFont"
                 color="0x7FD8FFFF"
             />
 
@@ -102,7 +71,7 @@
                 text="Scan the code to join from your phone."
                 translation="[0, 65]"
                 width="280"
-                height="52"
+                height="72"
                 numLines="2"
                 wrap="true"
                 color="0xC8DAEFFF"
@@ -110,63 +79,25 @@
 
             <Rectangle
                 id="qrFrame"
-                translation="[0, 108]"
+                translation="[0, 132]"
                 width="280"
-                height="246"
+                height="220"
                 color="0x0A1827FF"
             />
 
             <Poster
                 id="qrCode"
-                width="220"
-                height="220"
-                translation="[30, 121]"
+                width="180"
+                height="180"
+                translation="[50, 152]"
             />
 
-            <Label
-                id="helperLabel"
-                text="Players appear on the right as they connect."
-                translation="[0, 360]"
-                width="280"
-                height="52"
-                numLines="2"
-                wrap="true"
-                color="0xC8DAEFFF"
-            />
-
-            <Rectangle
-                id="startGameBtnShadow"
-                translation="[0, 410]"
-                width="280"
-                height="64"
-                color="0x050D16CC"
-            />
-
-            <Rectangle
-                id="startGameBtnBg"
-                translation="[0, 394]"
-                width="280"
-                height="64"
-                color="0x1E8FFFFF"
-            />
-
-            <Rectangle
-                id="startGameBtnGlow"
-                translation="[0, 394]"
-                width="280"
-                height="10"
-                color="0x7DE3FFFF"
-            />
-
-            <Label
-                id="startGameBtnLabel"
+            <RoundedButton
+                id="startGameButton"
                 text="Start Game"
-                translation="[0, 412]"
-                width="280"
-                height="28"
-                horizAlign="center"
-                wrap="true"
-                color="0x06111DFF"
+                translation="[0, 386]"
+                buttonWidth="280"
+                buttonHeight="64"
             />
         </Group>
 
@@ -174,7 +105,7 @@
         <!-- RIGHT PANEL -->
         <Group
             id="rightPanel"
-            translation="[490, 130]">
+            translation="[490, 240]">
 
             <Label
                 id="playersTitle"
@@ -183,6 +114,7 @@
                 width="260"
                 height="40"
                 wrap="true"
+                font="font:MediumBoldSystemFont"
                 color="0xFFFFFFFF"
             />
 
@@ -199,11 +131,11 @@
             <MarkupGrid
                 id="playerGrid"
                 itemComponentName="PlayerGridItem"
-                translation="[0, 100]"
+                translation="[0, 75]"
                 itemSize="[220, 100]"
                 itemSpacing="[20, 20]"
                 numColumns="3"
-                numRows="4"
+                numRows="3"
                 layoutDirection="horiz"
                 drawFocusFeedback="false"
             />

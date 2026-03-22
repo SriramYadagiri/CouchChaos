@@ -1,26 +1,48 @@
 sub init()
-    m.createBtnShadow = m.top.findNode("createBtnShadow")
-    m.createBtnBg = m.top.findNode("createBtnBg")
-    m.createBtnGlow = m.top.findNode("createBtnGlow")
-    m.createBtnLabel = m.top.findNode("createBtnLabel")
-    m.createTipLabel = m.top.findNode("createTipLabel")
+    m.chrome = m.top.findNode("chrome")
+    m.singlePlayerButton = m.top.findNode("singlePlayerButton")
+    m.createButton = m.top.findNode("createButton")
     m.createTask = createObject("roSGNode", "CreateRoomTask")
     m.createTask.observeField("roomData", "onRoomCreated")
-    m.top.setFocus(true)
-    applyCreateButtonStyle(true, false)
+    m.currentFocus = "singlePlayer"
+    m.singlePlayerButton.isFocused = true
+    m.createButton.isFocused = false
 end sub
 
 function onKeyEvent(key, press) as Boolean
     handled = false
 
-    if key = "OK" then
-        if press then
-            print "OK button pressed"
-            applyCreateButtonStyle(true, true)
-            m.createTask.control = "RUN"
+    if press then
+        if key = "OK" then
+            if m.currentFocus = "create" then
+                print "Create Room button pressed"
+                m.createButton.isPressed = true
+                m.createTask.control = "RUN"
+            else if m.currentFocus = "singlePlayer" then
+                print "Single Player Games button pressed"
+                ' TODO: Implement single player logic
+            end if
             handled = true
-        else
-            applyCreateButtonStyle(true, false)
+        else if key = "down" then
+            if m.currentFocus = "singlePlayer" then
+                m.currentFocus = "create"
+                m.singlePlayerButton.isFocused = false
+                m.createButton.isFocused = true
+                handled = true
+            end if
+        else if key = "up" then
+            if m.currentFocus = "create" then
+                m.currentFocus = "singlePlayer"
+                m.createButton.isFocused = false
+                m.singlePlayerButton.isFocused = true
+                handled = true
+            end if
+        end if
+    else
+        if key = "OK" then
+            if m.currentFocus = "create" then
+                m.createButton.isPressed = false
+            end if
             handled = true
         end if
     end if
@@ -29,33 +51,17 @@ function onKeyEvent(key, press) as Boolean
 end function
 
 sub applyCreateButtonStyle(isFocused as Boolean, isPressed as Boolean)
-    if isPressed then
-        m.createBtnShadow.color = "0x03070ECC"
-        m.createBtnBg.translation = [220, 485]
-        m.createBtnGlow.translation = [220, 485]
-        m.createBtnLabel.translation = [220, 507]
-    else
-        m.createBtnShadow.color = "0x050D16CC"
-        m.createBtnBg.translation = [212, 476]
-        m.createBtnGlow.translation = [212, 476]
-        m.createBtnLabel.translation = [212, 498]
-    end if
-
-    if isFocused then
-        m.createBtnBg.color = "0x2ACBFFFF"
-        m.createBtnGlow.color = "0xBAF3FFFF"
-        m.createBtnLabel.color = "0x06111DFF"
-    else
-        m.createBtnBg.color = "0x1E8FFFFF"
-        m.createBtnGlow.color = "0x7DE3FFFF"
-        m.createBtnLabel.color = "0x06111DFF"
-    end if
+    m.createButton.isFocused = isFocused
+    m.createButton.isPressed = isPressed
 end sub
 
 sub onRoomCreated()
     room = m.createTask.roomData
-    applyCreateButtonStyle(true, false)
+    m.createButton.isPressed = false
     print "Room created: "; room.code
 
     m.top.sceneManager.callFunc("goToLobby", room.code)
+end sub
+
+sub cleanup()
 end sub

@@ -201,9 +201,63 @@ body {
 }
 
 .controller-content {
+  position: relative;
+  min-height: 280px;
+  margin-top: 16px;
+  overflow: hidden;
+}
+
+.controller-stage {
   display: grid;
   gap: 16px;
-  margin-top: 16px;
+}
+
+.controller-stage.is-entering {
+  animation: controller-slide-in 220ms ease forwards;
+}
+
+.controller-stage.is-leaving {
+  position: absolute;
+  inset: 0;
+  animation: controller-slide-out 220ms ease forwards;
+  pointer-events: none;
+}
+
+.toast-stack {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 30;
+  display: grid;
+  gap: 10px;
+  width: min(calc(100vw - 24px), 420px);
+  transform: translateX(-50%);
+}
+
+.toast-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(7, 17, 29, 0.94);
+  border: 1px solid rgba(129, 191, 227, 0.18);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  animation: toast-in 150ms ease;
+}
+
+.toast-card.is-hiding {
+  animation: toast-out 150ms ease forwards;
+}
+
+.toast-title {
+  margin: 0 0 4px;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.toast-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
 }
 
 .vote-grid,
@@ -332,5 +386,53 @@ body {
   .answer-card-title,
   .section-title {
     font-size: 20px;
+  }
+}
+
+@keyframes controller-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes controller-slide-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-28px);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
   }
 }

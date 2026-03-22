@@ -6,67 +6,26 @@
     </interface>
 
     <children>
-        <Rectangle
-            id="background"
-            width="1280"
-            height="720"
-            color="0x07111FFF"
-        />
-
-        <Rectangle
-            id="headerPanel"
-            translation="[60, 45]"
-            width="1160"
-            height="190"
-            color="0x12263DFF"
-        />
-
-        <Rectangle
-            id="headerAccent"
-            translation="[60, 45]"
-            width="1160"
-            height="10"
-            color="0x27C2FFFF"
+        <AppChrome
+            id="chrome"
+            title="Vote For The Next Minigame"
+            subtitle="Players vote on their phones. Move focus to preview a game."
+            bodyText=""
+            showBackButton="true"
+            backLabel="Back To Lobby"
         />
 
         <Rectangle
             id="gridPanel"
-            translation="[60, 255]"
+            translation="[60, 210]"
             width="1160"
-            height="405"
+            height="450"
             color="0x0E2034FF"
-        />
-
-        <Label
-            id="titleLabel"
-            text="Vote For The Next Minigame"
-            translation="[90, 78]"
-            width="900"
-            height="50"
-            color="0xFFFFFFFF"
-        />
-
-        <Label
-            id="subtitleLabel"
-            text="Players vote on their phones. Move focus to preview a game."
-            translation="[90, 130]"
-            width="980"
-            height="40"
-            color="0xD7E3FFFF"
-        />
-
-        <Label
-            id="descriptionLabel"
-            translation="[90, 170]"
-            width="1070"
-            height="80"
-            numLines="6"
-            color="0xFFFFFFFF"
         />
 
         <Rectangle
             id="timerTrack"
-            translation="[90, 222]"
+            translation="[90, 178]"
             width="1070"
             height="14"
             color="0x24415EFF"
@@ -75,7 +34,7 @@
 
         <Rectangle
             id="timerFill"
-            translation="[90, 222]"
+            translation="[90, 178]"
             width="1070"
             height="14"
             color="0x27C2FFFF"
@@ -88,44 +47,10 @@
             duration="0.1"
         />
 
-        <Rectangle
-            id="backBtnShadow"
-            translation="[68, 42]"
-            width="190"
-            height="54"
-            color="0x050D16CC"
-        />
-
-        <Rectangle
-            id="backBtnBg"
-            translation="[60, 34]"
-            width="190"
-            height="54"
-            color="0x224563FF"
-        />
-
-        <Rectangle
-            id="backBtnGlow"
-            translation="[60, 34]"
-            width="190"
-            height="10"
-            color="0x7DA8CCFF"
-        />
-
-        <Label
-            id="backBtnLabel"
-            text="Back To Lobby"
-            translation="[60, 49]"
-            width="190"
-            height="28"
-            horizAlign="center"
-            color="0xDCEBFAFF"
-        />
-
         <MarkupGrid
             id="miniGameGrid"
             itemComponentName="MiniGameItem"
-            translation="[95, 285]"
+            translation="[95, 242]"
             itemSize="[320, 220]"
             itemSpacing="[30, 30]"
             numColumns="3"
@@ -134,41 +59,12 @@
             drawFocusFeedback="true"
         />
 
-        <Rectangle
-            id="returnVoteBtnShadow"
-            translation="[890, 626]"
-            width="300"
-            height="56"
-            color="0x050D16CC"
-            visible="false"
-        />
-
-        <Rectangle
-            id="returnVoteBtnBg"
-            translation="[882, 618]"
-            width="300"
-            height="56"
-            color="0x1E8FFFFF"
-            visible="false"
-        />
-
-        <Rectangle
-            id="returnVoteBtnGlow"
-            translation="[882, 618]"
-            width="300"
-            height="10"
-            color="0x7DE3FFFF"
-            visible="false"
-        />
-
-        <Label
-            id="returnVoteBtnLabel"
+        <RoundedButton
+            id="returnVoteButton"
             text="Return To Game Vote"
-            translation="[882, 633]"
-            width="300"
-            height="28"
-            horizAlign="center"
-            color="0x06111DFF"
+            translation="[882, 620]"
+            buttonWidth="300"
+            buttonHeight="56"
             visible="false"
         />
     </children>

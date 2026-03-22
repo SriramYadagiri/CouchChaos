@@ -1,25 +1,17 @@
 sub init()
-    m.titleLabel = m.top.findNode("titleLabel")
+    m.chrome = m.top.findNode("chrome")
     m.miniGameGrid = m.top.findNode("miniGameGrid")
-    m.subtitleLabel = m.top.findNode("subtitleLabel")
-    m.descriptionLabel = m.top.findNode("descriptionLabel")
     m.timerTrack = m.top.findNode("timerTrack")
     m.timerFill = m.top.findNode("timerFill")
     m.triviaTimer = m.top.findNode("triviaTimer")
-    m.backBtnShadow = m.top.findNode("backBtnShadow")
-    m.backBtnBg = m.top.findNode("backBtnBg")
-    m.backBtnGlow = m.top.findNode("backBtnGlow")
-    m.backBtnLabel = m.top.findNode("backBtnLabel")
-    m.returnVoteBtnShadow = m.top.findNode("returnVoteBtnShadow")
-    m.returnVoteBtnBg = m.top.findNode("returnVoteBtnBg")
-    m.returnVoteBtnGlow = m.top.findNode("returnVoteBtnGlow")
-    m.returnVoteBtnLabel = m.top.findNode("returnVoteBtnLabel")
+    m.returnVoteButton = m.top.findNode("returnVoteButton")
     m.pollTask = CreateObject("roSGNode", "PlayerPollTask")
     m.startVoteTask = CreateObject("roSGNode", "StartGameVoteTask")
     m.lastFocusedIndex = 0
     m.currentGridSignature = ""
     m.currentPhase = ""
     m.isReturnButtonVisible = false
+    m.focusTarget = "grid"
     m.triviaQuestionKey = ""
     m.triviaQuestionEndsAt = invalid
     m.triviaQuestionDurationMs = 0
@@ -31,7 +23,7 @@ sub init()
     m.triviaTimer.observeField("fire", "onTriviaTimerTick")
     m.miniGameGrid.observeField("itemFocused", "onMiniGameFocused")
     setGridInteractive(true)
-    applyBackButtonStyle(false)
+    applyBackButtonStyle(false, false)
     showReturnVoteButton(false)
 end sub
 
@@ -68,9 +60,7 @@ sub onRoomUpdate()
     else
         setGridInteractive(false)
         m.miniGameGrid.content = CreateObject("roSGNode", "ContentNode")
-        m.titleLabel.text = "Vote For The Next Minigame"
-        m.subtitleLabel.text = "Waiting for the next round."
-        m.descriptionLabel.text = ""
+        setChromeText("Vote For The Next Minigame", "Waiting for the next round.", "")
     end if
 
     showReturnVoteButton(phase = "trivia_leaderboard" or phase = "imposter_result")
@@ -78,17 +68,37 @@ end sub
 
 function onKeyEvent(key as String, press as Boolean) as Boolean
     if key = "back" and press then
-        applyBackButtonStyle(true)
         if m.top.sceneManager <> invalid then
-            m.top.sceneManager.callFunc("goToLobby", m.top.roomCode)
+            applyBackButtonStyle(true, true)
+            m.top.sceneManager.callFunc("goBack")
         end if
         return true
     else if key = "back" and not press then
-        applyBackButtonStyle(false)
+        applyBackButtonStyle(false, false)
         return true
     end if
 
     if not press then return false
+
+    if not m.isReturnButtonVisible and (m.currentPhase = "game_select" or m.currentPhase = "game_selected") then
+        if (key = "up" or key = "left") and m.focusTarget = "grid" then
+            m.focusTarget = "back"
+            setGridInteractive(false)
+            applyBackButtonStyle(true, false)
+            return true
+        else if (key = "down" or key = "right") and m.focusTarget = "back" then
+            m.focusTarget = "grid"
+            applyBackButtonStyle(false, false)
+            setGridInteractive(true)
+            return true
+        else if key = "OK" and m.focusTarget = "back" then
+            applyBackButtonStyle(true, true)
+            if m.top.sceneManager <> invalid then
+                m.top.sceneManager.callFunc("goBack")
+            end if
+            return true
+        end if
+    end if
 
     if m.isReturnButtonVisible then
         if key = "OK" then
@@ -137,7 +147,9 @@ sub updateFocusedDescription(index as Integer)
         description = description + " Votes: " + focusedItem.votecount
     end if
 
-    m.descriptionLabel.text = description
+    if m.chrome <> invalid then
+        m.chrome.bodyText = description
+    end if
 end sub
 
 sub updateTvView(tvView as Object)
@@ -146,26 +158,24 @@ sub updateTvView(tvView as Object)
 
     if layout = "game_vote" then
         setTriviaTimerState(invalid, 0)
-        renderCardGrid(tvView, true, 3, 1, [320, 220], [95, 285], "game_vote")
+        renderCardGrid(tvView, true, 3, 1, [320, 220], [95, 242], "game_vote")
     else if layout = "trivia_question" then
         questionEndsAt = invalid
         questionDurationMs = 0
         if tvView.doesExist("questionEndsAt") then questionEndsAt = tvView.questionEndsAt
         if tvView.doesExist("questionDurationMs") then questionDurationMs = tvView.questionDurationMs
         setTriviaTimerState(questionEndsAt, questionDurationMs)
-        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 290], "trivia_option")
+        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "trivia_option")
     else if layout = "leaderboard" then
         setTriviaTimerState(invalid, 0)
-        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 290], "leaderboard")
+        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "leaderboard")
     else if layout = "player_grid" then
         setTriviaTimerState(invalid, 0)
-        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 290], "leaderboard")
+        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "leaderboard")
     else
         setTriviaTimerState(invalid, 0)
         setGridInteractive(false)
-        m.titleLabel.text = tvView.title
-        m.subtitleLabel.text = tvView.subtitle
-        m.descriptionLabel.text = tvView.description
+        setChromeText(tvView.title, tvView.subtitle, tvView.description)
         updateGridIfNeeded(CreateObject("roSGNode", "ContentNode"), "message|" + tvView.title + "|" + tvView.subtitle + "|" + tvView.description)
     end if
 end sub
@@ -233,7 +243,16 @@ sub updateTriviaTimerBar()
 end sub
 
 sub renderCardGrid(tvView as Object, interactive as Boolean, numColumns as Integer, numRows as Integer, itemSize as Object, translation as Object, cardKind as String)
-    setGridInteractive(interactive)
+    if interactive then
+        m.miniGameGrid.drawFocusFeedback = true
+        if m.focusTarget = "grid" then
+            setGridInteractive(true)
+        else
+            m.miniGameGrid.drawFocusFeedback = false
+        end if
+    else
+        setGridInteractive(false)
+    end if
     configureGrid(numColumns, numRows, itemSize, translation)
     content = CreateObject("roSGNode", "ContentNode")
     signature = cardKind + "|"
@@ -262,9 +281,7 @@ sub renderCardGrid(tvView as Object, interactive as Boolean, numColumns as Integ
     end if
 
     updateGridIfNeeded(content, signature)
-    m.titleLabel.text = tvView.title
-    m.subtitleLabel.text = tvView.subtitle
-    m.descriptionLabel.text = tvView.description
+    setChromeText(tvView.title, tvView.subtitle, tvView.description)
 
     if interactive and content.getChildCount() > 0 then
         updateFocusedDescription(m.lastFocusedIndex)
@@ -273,53 +290,19 @@ end sub
 
 sub showReturnVoteButton(isVisible as Boolean)
     m.isReturnButtonVisible = isVisible
-    m.returnVoteBtnShadow.visible = isVisible
-    m.returnVoteBtnBg.visible = isVisible
-    m.returnVoteBtnGlow.visible = isVisible
-    m.returnVoteBtnLabel.visible = isVisible
+    m.returnVoteButton.visible = isVisible
     applyReturnVoteButtonStyle(false)
 end sub
 
-sub applyBackButtonStyle(isPressed as Boolean)
-    if isPressed then
-        m.backBtnShadow.color = "0x03070ECC"
-        m.backBtnBg.translation = [68, 42]
-        m.backBtnGlow.translation = [68, 42]
-        m.backBtnLabel.translation = [68, 57]
-        m.backBtnBg.color = "0x2ACBFFFF"
-        m.backBtnGlow.color = "0xBAF3FFFF"
-        m.backBtnLabel.color = "0x06111DFF"
-    else
-        m.backBtnShadow.color = "0x050D16CC"
-        m.backBtnBg.translation = [60, 34]
-        m.backBtnGlow.translation = [60, 34]
-        m.backBtnLabel.translation = [60, 49]
-        m.backBtnBg.color = "0x224563FF"
-        m.backBtnGlow.color = "0x7DA8CCFF"
-        m.backBtnLabel.color = "0xDCEBFAFF"
-    end if
+sub applyBackButtonStyle(isFocused as Boolean, isPressed as Boolean)
+    if m.chrome = invalid then return
+    m.chrome.callFunc("setBackButtonState", isFocused, isPressed)
 end sub
 
 sub applyReturnVoteButtonStyle(isPressed as Boolean)
     if not m.isReturnButtonVisible then return
-
-    if isPressed then
-        m.returnVoteBtnShadow.color = "0x03070ECC"
-        m.returnVoteBtnBg.translation = [890, 626]
-        m.returnVoteBtnGlow.translation = [890, 626]
-        m.returnVoteBtnLabel.translation = [890, 641]
-        m.returnVoteBtnBg.color = "0x2ACBFFFF"
-        m.returnVoteBtnGlow.color = "0xBAF3FFFF"
-        m.returnVoteBtnLabel.color = "0x06111DFF"
-    else
-        m.returnVoteBtnShadow.color = "0x050D16CC"
-        m.returnVoteBtnBg.translation = [882, 618]
-        m.returnVoteBtnGlow.translation = [882, 618]
-        m.returnVoteBtnLabel.translation = [882, 633]
-        m.returnVoteBtnBg.color = "0x1E8FFFFF"
-        m.returnVoteBtnGlow.color = "0x7DE3FFFF"
-        m.returnVoteBtnLabel.color = "0x06111DFF"
-    end if
+    m.returnVoteButton.isFocused = true
+    m.returnVoteButton.isPressed = isPressed
 end sub
 
 sub configureGrid(numColumns as Integer, numRows as Integer, itemSize as Object, translation as Object)
@@ -337,6 +320,7 @@ end sub
 sub setGridInteractive(isInteractive as Boolean)
     m.miniGameGrid.drawFocusFeedback = isInteractive
     if isInteractive then
+        m.focusTarget = "grid"
         m.miniGameGrid.setFocus(true)
     else
         m.top.setFocus(true)
@@ -365,4 +349,11 @@ sub setGridContentPreservingFocus(content as Object)
 
     m.lastFocusedIndex = targetIndex
     m.miniGameGrid.jumpToItem = targetIndex
+end sub
+
+sub setChromeText(title as String, subtitle as String, bodyText as String)
+    if m.chrome = invalid then return
+    m.chrome.title = title
+    m.chrome.subtitle = subtitle
+    m.chrome.bodyText = bodyText
 end sub

@@ -23,6 +23,7 @@
 
     <section id="content" class="controller-content"></section>
   </main>
+  <div id="toastStack" class="toast-stack"></div>
 
 <script>
 const socket = io();
@@ -34,6 +35,9 @@ let latestPrivateState = { gameId: null };
 let votedGameId = null;
 let pendingAction = "";
 let countdownTimerId = null;
+let lastToastKey = "";
+let activeQuestionKey = "";
+let currentStage = null;
 
 if (!name || !code) {
   window.location.href = "/";
@@ -106,6 +110,59 @@ function renderTriviaResult(content, latestResult) {
   card.appendChild(heading);
   card.appendChild(body);
   content.appendChild(card);
+}
+
+function buildTriviaToast(latestResult) {
+  if (!latestResult || !latestResult.questionNumber) return null;
+
+  const title = latestResult.wasCorrect ? `+${latestResult.pointsEarned} points` : "0 points";
+  let body = "";
+
+  if (latestResult.timedOut) {
+    body = `Time ran out. Total: ${latestResult.totalPoints} pts. Place: ${formatPlace(latestResult.place)}`;
+  } else if (latestResult.wasCorrect) {
+    const seconds = Math.max(0, Math.round(latestResult.responseTimeMs / 100) / 10);
+    body = `Correct in ${seconds}s. Total: ${latestResult.totalPoints} pts. Place: ${formatPlace(latestResult.place)}`;
+  } else {
+    body = `Wrong answer. Total: ${latestResult.totalPoints} pts. Place: ${formatPlace(latestResult.place)}`;
+  }
+
+  return {
+    key: `trivia-result-${latestResult.questionNumber}-${latestResult.totalPoints}-${latestResult.timedOut ? "timeout" : "answered"}`,
+    title,
+    body
+  };
+}
+
+function showToast(message) {
+  if (!message || !message.key || message.key === lastToastKey) return;
+  lastToastKey = message.key;
+
+  const stack = document.getElementById("toastStack");
+  const toast = document.createElement("div");
+  toast.className = "toast-card";
+
+  const title = document.createElement("p");
+  title.className = "toast-title";
+  title.innerText = message.title;
+
+  const body = document.createElement("p");
+  body.className = "toast-copy";
+  body.innerText = message.body;
+
+  const dismiss = () => {
+    if (!toast.isConnected) return;
+    toast.classList.add("is-hiding");
+    window.setTimeout(() => {
+      if (toast.isConnected) toast.remove();
+    }, 150);
+  };
+
+  toast.appendChild(title);
+  toast.appendChild(body);
+  toast.addEventListener("click", dismiss);
+  stack.appendChild(toast);
+  window.setTimeout(dismiss, 1000);
 }
 
 function attachCountdown(detailsEl, questionEndsAt) {
@@ -217,8 +274,6 @@ function renderGameVote(content, view, detailsEl) {
 }
 
 function renderAnswerGrid(content, view) {
-  renderTriviaResult(content, view.latestResult);
-
   const promptCard = createCard("mobile-card section-card");
   const promptLabel = document.createElement("p");
   promptLabel.className = "question-kicker";
@@ -260,8 +315,6 @@ function renderAnswerGrid(content, view) {
 }
 
 function renderLeaderboard(content, view) {
-  renderTriviaResult(content, view.latestResult);
-
   const board = document.createElement("section");
   board.className = "mobile-card leaderboard-card";
 
@@ -418,19 +471,48 @@ function render(state, privateState = {}) {
     title: "Look at the TV",
     details: "Waiting for the next prompt."
   };
-
-  content.innerHTML = "";
   document.body.setAttribute("data-phase", state?.phase || "waiting");
   status.innerText = view.title || "Look at the TV";
   details.innerText = view.details || "Waiting for the next prompt.";
 
+  const stage = document.createElement("div");
+  stage.className = "controller-stage";
   const renderer = renderers[view.layout] || renderers.message;
-  renderer(content, view, privateState, details);
+  renderer(stage, view, privateState, details);
+
+  const nextQuestionKey = view.layout === "answer_grid"
+    ? `answer_grid:${view.questionNumber || view.title || ""}`
+    : view.layout;
+
+  if (!currentStage) {
+    content.innerHTML = "";
+    content.appendChild(stage);
+    currentStage = stage;
+  } else if (nextQuestionKey !== activeQuestionKey && view.layout === "answer_grid") {
+    const previousStage = currentStage;
+    previousStage.classList.remove("is-entering");
+    previousStage.classList.add("is-leaving");
+    stage.classList.add("is-entering");
+    content.appendChild(stage);
+    currentStage = stage;
+    window.setTimeout(() => {
+      if (previousStage.isConnected) previousStage.remove();
+    }, 220);
+  } else {
+    content.innerHTML = "";
+    content.appendChild(stage);
+    currentStage = stage;
+  }
+  activeQuestionKey = nextQuestionKey;
 
   if (view.layout === "answer_grid") {
     attachCountdown(details, view.questionEndsAt);
   } else {
     stopCountdownTimer();
+  }
+
+  if (view.latestResult) {
+    showToast(buildTriviaToast(view.latestResult));
   }
 }
 

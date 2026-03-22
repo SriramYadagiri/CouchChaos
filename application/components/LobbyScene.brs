@@ -1,13 +1,10 @@
 sub init()
+    m.chrome = m.top.findNode("chrome")
     m.roomCodeLabel = m.top.findNode("roomCodeLabel")
-    m.backBtnShadow = m.top.findNode("backBtnShadow")
-    m.backBtnBg = m.top.findNode("backBtnBg")
-    m.backBtnGlow = m.top.findNode("backBtnGlow")
-    m.backBtnLabel = m.top.findNode("backBtnLabel")
-    m.startGameBtnShadow = m.top.findNode("startGameBtnShadow")
-    m.startGameBtnBg = m.top.findNode("startGameBtnBg")
-    m.startGameBtnGlow = m.top.findNode("startGameBtnGlow")
-    m.startGameBtnLabel = m.top.findNode("startGameBtnLabel")
+    m.roomCodeTitle = m.top.findNode("roomCodeTitle")
+    m.playersTitle = m.top.findNode("playersTitle")
+    m.playersSubtitle = m.top.findNode("playersSubtitle")
+    m.startGameButton = m.top.findNode("startGameButton")
     m.playerGrid = m.top.findNode("playerGrid")
     m.startVoteTask = CreateObject("roSGNode", "StartGameVoteTask")
     m.focusTarget = "start"
@@ -72,7 +69,7 @@ end sub
 function onKeyEvent(key, press) as Boolean
     if press and key = "back" then
         if m.top.sceneManager <> invalid then
-            m.top.sceneManager.callFunc("showMainMenu")
+            m.top.sceneManager.callFunc("goBack")
         end if
         return true
     end if
@@ -94,7 +91,8 @@ function onKeyEvent(key, press) as Boolean
             refreshButtonStyles(true)
             if m.focusTarget = "back" then
                 if m.top.sceneManager <> invalid then
-                    m.top.sceneManager.callFunc("showMainMenu")
+                    m.chrome.callFunc("applyBackButtonStyle", true)
+                    m.top.sceneManager.callFunc("goBack")
                 end if
             else
                 m.startVoteTask.roomCode = m.top.roomCode
@@ -116,51 +114,13 @@ sub refreshButtonStyles(isPressed as Boolean)
 end sub
 
 sub applyBackButtonStyle(isFocused as Boolean, isPressed as Boolean)
-    if isPressed then
-        m.backBtnShadow.color = "0x03070ECC"
-        m.backBtnBg.translation = [68, 42]
-        m.backBtnGlow.translation = [68, 42]
-        m.backBtnLabel.translation = [68, 57]
-    else
-        m.backBtnShadow.color = "0x050D16CC"
-        m.backBtnBg.translation = [60, 34]
-        m.backBtnGlow.translation = [60, 34]
-        m.backBtnLabel.translation = [60, 49]
-    end if
-
-    if isFocused then
-        m.backBtnBg.color = "0x2ACBFFFF"
-        m.backBtnGlow.color = "0xBAF3FFFF"
-        m.backBtnLabel.color = "0x06111DFF"
-    else
-        m.backBtnBg.color = "0x224563FF"
-        m.backBtnGlow.color = "0x7DA8CCFF"
-        m.backBtnLabel.color = "0xDCEBFAFF"
-    end if
+    if m.chrome = invalid then return
+    m.chrome.callFunc("setBackButtonState", isFocused, isPressed)
 end sub
 
 sub applyStartButtonStyle(isFocused as Boolean, isPressed as Boolean)
-    if isPressed then
-        m.startGameBtnShadow.color = "0x03070ECC"
-        m.startGameBtnBg.translation = [0, 402]
-        m.startGameBtnGlow.translation = [0, 402]
-        m.startGameBtnLabel.translation = [0, 420]
-    else
-        m.startGameBtnShadow.color = "0x050D16CC"
-        m.startGameBtnBg.translation = [0, 394]
-        m.startGameBtnGlow.translation = [0, 394]
-        m.startGameBtnLabel.translation = [0, 412]
-    end if
-
-    if isFocused then
-        m.startGameBtnBg.color = "0x2ACBFFFF"
-        m.startGameBtnGlow.color = "0xBAF3FFFF"
-        m.startGameBtnLabel.color = "0x06111DFF"
-    else
-        m.startGameBtnBg.color = "0x1E8FFFFF"
-        m.startGameBtnGlow.color = "0x7DE3FFFF"
-        m.startGameBtnLabel.color = "0x06111DFF"
-    end if
+    m.startGameButton.isFocused = isFocused
+    m.startGameButton.isPressed = isPressed
 end sub
 
 sub onVoteStarted()

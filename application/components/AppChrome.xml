@@ -1,0 +1,85 @@
+<component name="AppChrome" extends="Group">
+    <interface>
+        <field id="title" type="string" onChange="onContentChanged" />
+        <field id="subtitle" type="string" onChange="onContentChanged" />
+        <field id="bodyText" type="string" onChange="onContentChanged" />
+        <field id="showBackButton" type="boolean" value="false" onChange="onBackStateChanged" />
+        <field id="backLabel" type="string" value="Back" onChange="onBackStateChanged" />
+        <function name="setBackButtonState" />
+    </interface>
+
+    <children>
+        <Rectangle
+            id="background"
+            width="1280"
+            height="720"
+            color="0x07111FFF"
+        />
+
+        <Rectangle
+            id="headerBand"
+            width="1280"
+            height="172"
+            color="0x0A1828FF"
+        />
+
+        <Rectangle
+            id="headerDivider"
+            translation="[0, 172]"
+            width="1280"
+            height="2"
+            color="0x173B59FF"
+        />
+
+        <Rectangle
+            id="headerGlow"
+            translation="[0, 170]"
+            width="1280"
+            height="1"
+            color="0x36C7F3AA"
+        />
+
+        <RoundedButton
+            id="backButton"
+            translation="[60, 34]"
+            buttonWidth="190"
+            buttonHeight="54"
+            buttonColor="0x224563FF"
+            focusedButtonColor="0x2ACBFFFF"
+            textColor="0xDCEBFAFF"
+            focusedTextColor="0x06111DFF"
+            visible="false"
+        />
+
+        <Label
+            id="titleLabel"
+            translation="[90, 52]"
+            width="900"
+            height="44"
+            color="0xFFFFFFFF"
+        />
+
+        <Label
+            id="subtitleLabel"
+            translation="[90, 96]"
+            width="980"
+            height="100"
+            numLines="5"
+            ellipsize="false"
+            wrap="true"
+            font="font:MediumBoldSystemFont"
+            color="0xD7E3FFFF"
+        />
+
+        <Label
+            id="bodyLabel"
+            translation="[90, 138]"
+            width="1070"
+            height="26"
+            numLines="1"
+            color="0xAFC7DAFF"
+        />
+    </children>
+
+    <script type="text/brightscript" uri="AppChrome.brs" />
+</component>
