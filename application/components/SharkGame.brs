@@ -130,12 +130,12 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
         currPos = m.fish.translation
         if key = "up" then
             if currPos[1] > 50
-                m.fish.translation = [currPos[0], currPos[1] - 200]
+                m.fish.translation = [currPos[0], currPos[1] - 100]
             end if
             return true
         else if key = "down" then
-            if currPos[1] < 650
-                m.fish.translation = [currPos[0], currPos[1] + 200]
+            if currPos[1] < 350
+                m.fish.translation = [currPos[0], currPos[1] + 100]
             end if
             return true
         end if
