@@ -3,6 +3,8 @@
         <function name="goToLobby"/>
         <function name="showMainMenu"/>
         <function name="showMiniGameVote"/>
+        <function name="showSinglePlayer"/>
+        <function name="showSharkGame"/>
         <function name="goBack"/>
     </interface>
 

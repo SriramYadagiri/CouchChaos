@@ -1,0 +1,48 @@
+<component name="SinglePlayerScene" extends="Group">
+    <interface>
+        <field id="sceneManager" type="node" />
+        <field id="roomCode" type="string" />
+        <function name="cleanup" />
+    </interface>
+
+    <children>
+        <AppChrome
+            id="chrome"
+            title="Single Player Games"
+            subtitle="Move focus to preview a game. Press OK to launch."
+            bodyText=""
+            showBackButton="true"
+            backLabel="Back To Menu"
+        />
+
+        <Rectangle
+            id="gridPanel"
+            translation="[60, 210]"
+            width="1160"
+            height="450"
+            color="0x0E2034FF"
+        />
+
+        <MarkupGrid
+            id="gameGrid"
+            itemComponentName="MiniGameItem"
+            translation="[95, 242]"
+            itemSize="[320, 220]"
+            itemSpacing="[30, 30]"
+            numColumns="3"
+            numRows="1"
+            layoutDirection="horiz"
+            drawFocusFeedback="true"
+        />
+
+        <RoundedButton
+            id="launchButton"
+            text="Launch Game"
+            translation="[882, 620]"
+            buttonWidth="300"
+            buttonHeight="56"
+        />
+    </children>
+
+    <script type="text/brightscript" uri="SinglePlayerScene.brs" />
+</component>

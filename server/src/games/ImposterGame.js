@@ -312,8 +312,20 @@ class ImposterGame extends BaseGame {
     return counts;
   }
 
+  // Build a map of targetId -> array of voter characters
+  getVotesByTarget() {
+    const byTarget = {};
+    for (const [voterId, targetId] of Object.entries(this.state.votes)) {
+      if (!byTarget[targetId]) byTarget[targetId] = [];
+      const voter = this.getPlayer(voterId);
+      if (voter) byTarget[targetId].push(voter.character || null);
+    }
+    return byTarget;
+  }
+
   getPublicState() {
     const voteCounts = this.getVoteCounts();
+    const votesByTarget = this.getVotesByTarget();
 
     return {
       roundNumber: this.state.roundNumber,
@@ -322,9 +334,11 @@ class ImposterGame extends BaseGame {
       alivePlayers: this.getPlayers().map((player) => ({
         id: player.id,
         name: player.name,
+        character: player.character,
         isEliminated: this.isEliminated(player.id),
         isCurrentTurn: player.id === this.getCurrentSpeakerId(),
-        voteCount: voteCounts[player.id] || 0
+        voteCount: voteCounts[player.id] || 0,
+        voterCharacters: votesByTarget[player.id] || []
       })),
       lastRoundSummary: this.state.lastRoundSummary
     };
@@ -415,6 +429,7 @@ class ImposterGame extends BaseGame {
     const publicState = this.getPublicState();
     const hasVoted = Boolean(playerId && this.state.votes[playerId]);
     const isCurrentSpeaker = playerId ? publicState.currentSpeakerId === playerId : false;
+    const myVoteTargetId = playerId ? this.state.votes[playerId] : null;
 
     if (this.room.phase === "imposter_waiting") {
       return {
@@ -441,10 +456,13 @@ class ImposterGame extends BaseGame {
         layout: "player_vote",
         title: "Vote out the imposter",
         details: hasVoted ? "Vote locked in. Waiting for the others." : "Choose one player. Majority eliminates them.",
+        myVoteTargetId,
         players: publicState.alivePlayers.filter((player) => !player.isEliminated).map((player) => ({
           id: player.id,
           label: player.name,
+          character: player.character,
           value: `${player.voteCount} vote(s)`,
+          voterCharacters: player.voterCharacters,
           disabled: hasVoted
         }))
       };
@@ -458,6 +476,7 @@ class ImposterGame extends BaseGame {
         items: this.getPlayers().map((player) => ({
           id: player.id,
           label: player.name,
+          character: player.character,
           value: player.id === this.state.imposterId ? "Imposter" : "Crew"
         }))
       };

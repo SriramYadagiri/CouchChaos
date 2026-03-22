@@ -17,6 +17,10 @@
           <span id="roomChip" class="meta-chip"></span>
         </div>
       </div>
+      <div id="myCharacterBadge" class="my-character-badge" style="display:none">
+        <img id="myCharacterImg" class="my-character-img" src="" alt="" />
+        <span id="myCharacterName" class="my-character-name"></span>
+      </div>
       <h1 id="status" class="page-title">Connecting...</h1>
       <p id="details" class="page-copy">Waiting for the TV.</p>
     </section>
@@ -38,6 +42,7 @@ let countdownTimerId = null;
 let lastToastKey = "";
 let activeQuestionKey = "";
 let currentStage = null;
+let myCharacter = null; // assigned character slug for this player
 
 if (!name || !code) {
   window.location.href = "/";
@@ -55,6 +60,25 @@ if (!clientId) {
 document.getElementById("playerChip").innerText = name ? `Player: ${name}` : "";
 document.getElementById("roomChip").innerText = code ? `Room: ${code}` : "";
 
+// ---- Character helpers ----
+function characterUrl(slug) {
+  if (!slug) return "";
+  return `/Characters/${slug}.png`;
+}
+
+function setMyCharacter(slug) {
+  if (!slug || myCharacter === slug) return;
+  myCharacter = slug;
+  const badge = document.getElementById("myCharacterBadge");
+  const img = document.getElementById("myCharacterImg");
+  const label = document.getElementById("myCharacterName");
+  img.src = characterUrl(slug);
+  img.alt = slug;
+  label.innerText = name || "You";
+  badge.style.display = "flex";
+}
+
+// ---- DOM helpers ----
 function createCard(className = "mobile-card") {
   const section = document.createElement("section");
   section.className = className;
@@ -89,27 +113,6 @@ function formatPlace(place) {
   if (value % 10 === 2) return `${value}nd`;
   if (value % 10 === 3) return `${value}rd`;
   return `${value}th`;
-}
-
-function renderTriviaResult(content, latestResult) {
-  if (!latestResult) return;
-
-  const card = createCard("mobile-card section-card");
-  const heading = document.createElement("h2");
-  heading.className = "section-title";
-  heading.innerText = latestResult.wasCorrect ? `+${latestResult.pointsEarned} points` : "0 points";
-
-  const body = document.createElement("p");
-  body.className = "section-copy";
-  body.innerText = latestResult.timedOut
-    ? `Time ran out. Total: ${latestResult.totalPoints} pts • Place: ${formatPlace(latestResult.place)}`
-    : (latestResult.wasCorrect
-      ? `Correct in ${Math.max(0, Math.round(latestResult.responseTimeMs / 100) / 10)}s. Total: ${latestResult.totalPoints} pts • Place: ${formatPlace(latestResult.place)}`
-      : `Wrong answer. Total: ${latestResult.totalPoints} pts • Place: ${formatPlace(latestResult.place)}`);
-
-  card.appendChild(heading);
-  card.appendChild(body);
-  content.appendChild(card);
 }
 
 function buildTriviaToast(latestResult) {
@@ -162,7 +165,7 @@ function showToast(message) {
   toast.appendChild(body);
   toast.addEventListener("click", dismiss);
   stack.appendChild(toast);
-  window.setTimeout(dismiss, 1000);
+  window.setTimeout(dismiss, 3000);
 }
 
 function attachCountdown(detailsEl, questionEndsAt) {
@@ -199,6 +202,44 @@ function sendGameAction(action, payload, onSuccess) {
   });
 }
 
+// ---- Character avatar builder ----
+function buildCharacterAvatar(slug, label, size = 48, dimmed = false, highlight = false) {
+  const wrap = document.createElement("div");
+  wrap.className = "character-avatar" + (dimmed ? " is-dimmed" : "") + (highlight ? " is-highlight" : "");
+
+  const img = document.createElement("img");
+  img.src = characterUrl(slug);
+  img.alt = label || slug;
+  img.width = size;
+  img.height = size;
+  wrap.appendChild(img);
+
+  if (label) {
+    const lbl = document.createElement("span");
+    lbl.className = "character-avatar-label";
+    lbl.innerText = label;
+    wrap.appendChild(lbl);
+  }
+
+  return wrap;
+}
+
+// Renders a row of small voter character icons above/beside a vote target
+function buildVoterPips(voterCharacters) {
+  if (!voterCharacters || voterCharacters.length === 0) return null;
+  const row = document.createElement("div");
+  row.className = "voter-pips";
+  for (const slug of voterCharacters) {
+    const pip = document.createElement("img");
+    pip.src = characterUrl(slug);
+    pip.alt = slug;
+    pip.className = "voter-pip";
+    row.appendChild(pip);
+  }
+  return row;
+}
+
+// ---- Renderers ----
 function renderPrivateCard(content, privateState) {
   if (!privateState || !privateState.gameId || !privateState.title) return;
 
@@ -330,6 +371,15 @@ function renderLeaderboard(content, view) {
     const item = document.createElement("li");
     item.className = "leaderboard-row";
 
+    // Character icon if available
+    if (entry.character) {
+      const avatar = document.createElement("img");
+      avatar.src = characterUrl(entry.character);
+      avatar.alt = entry.label;
+      avatar.className = "leaderboard-character-icon";
+      item.appendChild(avatar);
+    }
+
     const nameEl = document.createElement("span");
     nameEl.className = "leaderboard-name";
     nameEl.innerText = entry.label;
@@ -392,6 +442,14 @@ function renderImposterRound(content, view, privateState) {
     const item = document.createElement("li");
     item.className = "leaderboard-row";
 
+    if (player.character) {
+      const avatar = document.createElement("img");
+      avatar.src = characterUrl(player.character);
+      avatar.alt = player.name;
+      avatar.className = "leaderboard-character-icon";
+      item.appendChild(avatar);
+    }
+
     const nameEl = document.createElement("span");
     nameEl.className = "leaderboard-name";
     nameEl.innerText = player.name;
@@ -409,32 +467,76 @@ function renderImposterRound(content, view, privateState) {
   content.appendChild(board);
 }
 
+// Among Us-style player vote renderer
 function renderPlayerVote(content, view, privateState) {
   renderPrivateCard(content, privateState);
 
+  const card = createCard("mobile-card section-card");
+  const title = document.createElement("h2");
+  title.className = "section-title";
+  title.innerText = view.title || "Vote";
+  card.appendChild(title);
+
+  if (view.details) {
+    const sub = document.createElement("p");
+    sub.className = "section-copy";
+    sub.style.marginBottom = "16px";
+    sub.innerText = view.details;
+    card.appendChild(sub);
+  }
+
   const grid = document.createElement("div");
-  grid.className = "vote-grid";
+  grid.className = "player-vote-grid";
 
   (view.players || []).forEach((player) => {
-    const btn = document.createElement("button");
-    btn.className = "vote-card";
-    btn.disabled = Boolean(pendingAction) || player.disabled;
+    const isVotedFor = view.myVoteTargetId === player.id;
+    const cell = document.createElement("div");
+    cell.className = "player-vote-cell" + (isVotedFor ? " is-my-vote" : "") + (player.disabled && !isVotedFor ? " is-locked" : "");
 
-    const title = document.createElement("span");
-    title.className = "vote-card-title";
-    title.innerText = player.label;
+    // Character portrait
+    const portrait = document.createElement("div");
+    portrait.className = "player-vote-portrait";
+    if (player.character) {
+      const img = document.createElement("img");
+      img.src = characterUrl(player.character);
+      img.alt = player.label;
+      portrait.appendChild(img);
+    }
 
-    const meta = document.createElement("span");
-    meta.className = "vote-card-meta";
-    meta.innerText = player.value || "";
+    // Voter pips (characters who voted for this player)
+    if (player.voterCharacters && player.voterCharacters.length > 0) {
+      const pips = buildVoterPips(player.voterCharacters);
+      if (pips) portrait.appendChild(pips);
+    }
 
-    btn.appendChild(title);
-    btn.appendChild(meta);
-    btn.onclick = () => sendGameAction("cast_vote", { targetPlayerId: player.id });
-    grid.appendChild(btn);
+    // Player name
+    const label = document.createElement("span");
+    label.className = "player-vote-name";
+    label.innerText = player.label;
+
+    // Vote badge if I voted for them
+    if (isVotedFor) {
+      const badge = document.createElement("span");
+      badge.className = "player-vote-my-badge";
+      badge.innerText = "Your vote";
+      cell.appendChild(portrait);
+      cell.appendChild(label);
+      cell.appendChild(badge);
+    } else {
+      cell.appendChild(portrait);
+      cell.appendChild(label);
+    }
+
+    if (!player.disabled) {
+      cell.onclick = () => sendGameAction("cast_vote", { targetPlayerId: player.id });
+      cell.style.cursor = "pointer";
+    }
+
+    grid.appendChild(cell);
   });
 
-  content.appendChild(grid);
+  card.appendChild(grid);
+  content.appendChild(card);
 }
 
 const renderers = {
@@ -474,6 +576,21 @@ function render(state, privateState = {}) {
   document.body.setAttribute("data-phase", state?.phase || "waiting");
   status.innerText = view.title || "Look at the TV";
   details.innerText = view.details || "Waiting for the next prompt.";
+
+  // Sync my character from player list
+  if (state?.players) {
+    const myEntry = state.players.find((p) => p.clientId === clientId || p.name === name);
+    if (!myEntry) {
+      // Try matching by socket id via playerCharacters map
+    }
+    // playerCharacters map is keyed by socket id which we don't store client-side,
+    // but players array now includes character, so look up by name
+    const me = state.players.find((p) => {
+      const storedName = localStorage.getItem("name");
+      return storedName && p.name && p.name.toLowerCase() === storedName.toLowerCase();
+    });
+    if (me && me.character) setMyCharacter(me.character);
+  }
 
   const stage = document.createElement("div");
   stage.className = "controller-stage";

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="SharkGame" extends="Group">
+
+    <interface>
+        <field id="sceneManager" type="node" />
+        <field id="roomCode" type="string" />
+        <function name="cleanup" />
+    </interface>
+
+    <script type="text/brightscript" uri="SharkGame.brs" />
+
+    <children>
+        <Poster
+            id="background"
+            uri="pkg:/images/Ocean.png"
+            width="1280"
+            height="720"
+            translation="[0, 0]"
+            loadDisplayMode="stretch"
+        />
+
+        <Poster
+            id="Shark1"
+            uri="pkg:/images/Shark1.png"
+            width="300"
+            height="200"
+            translation="[1400, 50]"
+            visible="false"
+        />
+        <Poster
+            id="Shark2"
+            uri="pkg:/images/Shark2.png"
+            width="300"
+            height="200"
+            translation="[1400, 250]"
+            visible="false"
+        />
+        <Poster
+            id="Shark3"
+            uri="pkg:/images/Shark3.png"
+            width="300"
+            height="200"
+            translation="[1400, 450]"
+            visible="false"
+        />
+        <Poster
+            id="Whale"
+            uri="pkg:/images/Whale.png"
+            width="300"
+            height="200"
+            translation="[1400, 650]"
+            visible="false"
+        />
+        <Poster
+            id="Fish"
+            uri="pkg:/images/Fish.png"
+            width="300"
+            height="200"
+            translation="[100, 250]"
+            visible="false"
+        />
+
+        <Timer id="timer"  duration="1.0" repeat="true" />
+        <Timer id="timer2" duration="1.0" repeat="true" />
+        <Timer id="timer3" duration="1.0" repeat="true" />
+        <Timer id="timer4" duration="1.0" repeat="true" />
+
+        <Label
+            id="gameOverMsg"
+            text="GAME OVER! Press OK to play again, or Back to exit."
+            color="0xFF0000FF"
+            font="font:LargeBoldSystemFont"
+            width="1280"
+            height="720"
+            horizAlign="center"
+            vertAlign="center"
+            visible="false"
+        />
+
+        <Audio id="GameMusic" loop="true" />
+        <Audio id="GameOver"  loop="false" />
+
+        <ButtonGroup
+            id="MainMenu"
+            layoutDirection="Vert"
+            buttons='["Play", "Theme:", "Exit"]'
+            translation="[100, 100]"
+            focusedButton="0"
+        />
+
+        <Label
+            id="scoreLabel"
+            translation="[100, 50]"
+            text="Score: 0"
+            font="font:LargeBoldSystemFont"
+            color="0xFFFFFFFF"
+        />
+    </children>
+
+</component>

@@ -1,5 +1,12 @@
 const gameCatalog = require("./config/gameCatalog");
 const RECONNECT_GRACE_MS = 60000;
+const MAX_PLAYERS = 12;
+
+const CHARACTER_SLUGS = [
+  "character_01", "character_02", "character_03", "character_04",
+  "character_05", "character_06", "character_07", "character_08",
+  "character_09", "character_10", "character_11", "character_12"
+];
 
 function normalizeName(name) {
   return String(name || "")
@@ -49,6 +56,17 @@ class GameManager {
       ...game,
       votes: 0
     }));
+  }
+
+  getUsedCharacters(room) {
+    return room.players.map((p) => p.character).filter(Boolean);
+  }
+
+  assignCharacter(room) {
+    const used = new Set(this.getUsedCharacters(room));
+    const available = CHARACTER_SLUGS.filter((c) => !used.has(c));
+    if (available.length === 0) return null;
+    return available[Math.floor(Math.random() * available.length)];
   }
 
   joinRoom(code, socket, name, clientId) {
@@ -102,11 +120,23 @@ class GameManager {
       return { ok: true, player: existingPlayer, reconnected: true };
     }
 
+    // Check player cap for new (non-reconnecting) players
+    const connectedCount = room.players.filter((p) => p.isConnected).length;
+    if (connectedCount >= MAX_PLAYERS) {
+      return { ok: false, error: "This room is full (max 12 players)" };
+    }
+
+    const character = this.assignCharacter(room);
+    if (!character) {
+      return { ok: false, error: "No characters available" };
+    }
+
     const player = {
       id: socket.id,
       clientId,
       name: displayName,
       normalizedName,
+      character,
       isConnected: true,
       disconnectedAt: null,
       disconnectTimer: null
@@ -280,6 +310,15 @@ class GameManager {
     }));
   }
 
+  // Returns a map of playerId -> character slug for all players in a room
+  getPlayerCharacterMap(room) {
+    const map = {};
+    for (const player of room.players) {
+      if (player.character) map[player.id] = player.character;
+    }
+    return map;
+  }
+
   emitPlayersUpdate(code) {
     const room = this.getRoom(code);
     if (!room) return;
@@ -287,6 +326,7 @@ class GameManager {
     this.io.to(code).emit("players_update", room.players.map((player) => ({
       id: player.id,
       name: player.name,
+      character: player.character,
       isConnected: player.isConnected
     })));
   }
@@ -320,8 +360,10 @@ class GameManager {
       players: room.players.map((player) => ({
         id: player.id,
         name: player.name,
+        character: player.character,
         isConnected: player.isConnected
       })),
+      playerCharacters: this.getPlayerCharacterMap(room),
       games: room.games,
       selectedGame: room.selectedGame,
       activeGameId: activeGame?.id || null,

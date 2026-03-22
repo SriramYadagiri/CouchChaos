@@ -436,3 +436,182 @@ body {
     transform: translateY(8px) scale(0.98);
   }
 }
+
+/* ============================================================
+   CHARACTER & VOTE STYLES — append to bottom of styles.css
+   ============================================================ */
+
+/* My character badge shown in the hero card */
+.my-character-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(39, 194, 255, 0.12);
+  border: 1px solid rgba(39, 194, 255, 0.22);
+  width: fit-content;
+}
+
+.my-character-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.my-character-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #92e3ff;
+}
+
+/* Generic character avatar (used in lists) */
+.character-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.character-avatar.is-dimmed {
+  opacity: 0.35;
+}
+
+.character-avatar.is-highlight img {
+  filter: drop-shadow(0 0 6px rgba(39, 194, 255, 0.9));
+}
+
+.character-avatar img {
+  image-rendering: pixelated;
+  object-fit: contain;
+}
+
+.character-avatar-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-align: center;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Leaderboard character icon */
+.leaderboard-character-icon {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  flex-shrink: 0;
+}
+
+/* ---- Among Us-style Player Vote Grid ---- */
+.player-vote-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.player-vote-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid transparent;
+  transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+  position: relative;
+}
+
+.player-vote-cell:not(.is-locked):not(.is-my-vote):hover {
+  background: rgba(39, 194, 255, 0.14);
+  border-color: rgba(39, 194, 255, 0.4);
+}
+
+.player-vote-cell:not(.is-locked):not(.is-my-vote):active {
+  transform: scale(0.96);
+}
+
+.player-vote-cell.is-my-vote {
+  background: rgba(39, 194, 255, 0.18);
+  border-color: rgba(39, 194, 255, 0.72);
+}
+
+.player-vote-cell.is-locked {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.player-vote-portrait {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-vote-portrait img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+.player-vote-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.player-vote-my-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #27c2ff;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+/* Voter pips — small icons stacked at bottom of portrait */
+.voter-pips {
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  max-width: 80px;
+}
+
+.voter-pip {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  image-rendering: pixelated;
+  border-radius: 50%;
+  background: rgba(7, 17, 29, 0.85);
+  border: 1px solid rgba(39, 194, 255, 0.5);
+  padding: 1px;
+}
+
+/* Responsive: collapse to 2 columns on narrow screens */
+@media (max-width: 360px) {
+  .player-vote-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

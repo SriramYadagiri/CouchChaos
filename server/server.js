@@ -13,6 +13,9 @@ const gameManager = new GameManager({ io, gameRegistry });
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
+// Serve character PNGs at /Characters/<slug>.png
+app.use("/Characters", express.static(path.join(__dirname, "Characters")));
+
 function generateCode() {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   let code;

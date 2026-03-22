@@ -26,6 +26,14 @@ sub showMiniGameVote(code as String)
     showScreen("MiniGameVoteScene", fields, true)
 end sub
 
+sub showSinglePlayer()
+    showScreen("SinglePlayerScene", invalid, true)
+end sub
+
+sub showSharkGame()
+    showScreen("SharkGame", invalid, true)
+end sub
+
 sub goBack()
     if m.navigationStack = invalid or m.navigationStack.count() <= 0 then
         showMainMenu()

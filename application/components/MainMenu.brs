@@ -20,7 +20,10 @@ function onKeyEvent(key, press) as Boolean
                 m.createTask.control = "RUN"
             else if m.currentFocus = "singlePlayer" then
                 print "Single Player Games button pressed"
-                ' TODO: Implement single player logic
+                m.singlePlayerButton.isPressed = true
+                if m.top.sceneManager <> invalid then
+                    m.top.sceneManager.callFunc("showSinglePlayer")
+                end if
             end if
             handled = true
         else if key = "down" then
@@ -42,6 +45,8 @@ function onKeyEvent(key, press) as Boolean
         if key = "OK" then
             if m.currentFocus = "create" then
                 m.createButton.isPressed = false
+            else if m.currentFocus = "singlePlayer" then
+                m.singlePlayerButton.isPressed = false
             end if
             handled = true
         end if
