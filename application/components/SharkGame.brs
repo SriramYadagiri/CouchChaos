@@ -130,12 +130,12 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
         currPos = m.fish.translation
         if key = "up" then
             if currPos[1] > 50
-                m.fish.translation = [currPos[0], currPos[1] - 200]
+                m.fish.translation = [currPos[0], currPos[1] - 100]
             end if
             return true
         else if key = "down" then
-            if currPos[1] < 650
-                m.fish.translation = [currPos[0], currPos[1] + 200]
+            if currPos[1] < 350
+                m.fish.translation = [currPos[0], currPos[1] + 100]
             end if
             return true
         end if
@@ -233,9 +233,9 @@ sub resetGame()
     m.Whale.visible = true
     m.fish.translation = [100, 250]
     m.Shark1.translation = [1400, 50]
-    m.Shark2.translation = [1400, 250]
-    m.Shark3.translation = [1400, 450]
-    m.Whale.translation = [1400, 650]
+    m.Shark2.translation = [1400, 150]
+    m.Shark3.translation = [1400, 250]
+    m.Whale.translation = [1400, 350]
     m.gameOverMsg.visible = false
     m.fish.opacity = 1.0
     m.music2.control = "stop"

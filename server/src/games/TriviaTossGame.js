@@ -1,7 +1,17 @@
 const BaseGame = require("./BaseGame");
+const QUESTION_BANK = require("./Questionbank");
+
 const QUESTION_DURATION_MS = 6000;
-const MIN_CORRECT_POINTS = 250;
-const MAX_SPEED_BONUS = 750;
+
+const DIFFICULTY_SETTINGS = {
+  1: { label: "Easy",   minPoints: 150,  maxSpeedBonus: 350 },
+  2: { label: "Medium", minPoints: 250,  maxSpeedBonus: 750 },
+  3: { label: "Hard",   minPoints: 400,  maxSpeedBonus: 1100 }
+};
+
+function getDifficultySettings(difficulty) {
+  return DIFFICULTY_SETTINGS[difficulty] || DIFFICULTY_SETTINGS[2];
+}
 
 const TRIVIA_OPTION_COLORS = {
   red: { label: "Red", cardColor: "0xC0392BFF", background: "#c0392b", color: "#ffffff" },
@@ -9,49 +19,6 @@ const TRIVIA_OPTION_COLORS = {
   yellow: { label: "Yellow", cardColor: "0xD4AC0DFF", background: "#d4ac0d", color: "#111111" },
   green: { label: "Green", cardColor: "0x239B56FF", background: "#239b56", color: "#ffffff" }
 };
-
-const QUESTION_BANK = [
-  {
-    prompt: "Placeholder Question 1",
-    correctColor: "red",
-    options: {
-      red: "Placeholder Answer 1",
-      blue: "Placeholder Wrong 1B",
-      yellow: "Placeholder Wrong 1C",
-      green: "Placeholder Wrong 1D"
-    }
-  },
-  {
-    prompt: "Placeholder Question 2",
-    correctColor: "blue",
-    options: {
-      red: "Placeholder Wrong 2A",
-      blue: "Placeholder Answer 2",
-      yellow: "Placeholder Wrong 2C",
-      green: "Placeholder Wrong 2D"
-    }
-  },
-  {
-    prompt: "Placeholder Question 3",
-    correctColor: "yellow",
-    options: {
-      red: "Placeholder Wrong 3A",
-      blue: "Placeholder Wrong 3B",
-      yellow: "Placeholder Answer 3",
-      green: "Placeholder Wrong 3D"
-    }
-  },
-  {
-    prompt: "Placeholder Question 4",
-    correctColor: "green",
-    options: {
-      red: "Placeholder Wrong 4A",
-      blue: "Placeholder Wrong 4B",
-      yellow: "Placeholder Wrong 4C",
-      green: "Placeholder Answer 4"
-    }
-  }
-];
 
 function normalizeAnswer(value) {
   return String(value || "").trim().toLowerCase();
@@ -197,9 +164,8 @@ class TriviaTossGame extends BaseGame {
       const answer = this.state.playerAnswers[playerId];
       const submittedAnswer = normalizeAnswer(answer?.answerColor);
       const isCorrect = submittedAnswer === correctAnswer;
-      const elapsedMs = answer ? Math.max(0, answer.submittedAt - questionStartTime) : QUESTION_DURATION_MS;
       const pointsEarned = isCorrect
-        ? this.calculatePoints(answer.submittedAt, questionStartTime, questionDeadline)
+        ? this.calculatePoints(answer.submittedAt, questionStartTime, questionDeadline, question.difficulty)
         : 0;
 
       this.state.scores[playerId] = (this.state.scores[playerId] || 0) + pointsEarned;
@@ -216,7 +182,7 @@ class TriviaTossGame extends BaseGame {
       const submittedAnswer = normalizeAnswer(answer?.answerColor);
       const isCorrect = submittedAnswer === correctAnswer;
       const pointsEarned = isCorrect
-        ? this.calculatePoints(answer.submittedAt, questionStartTime, questionDeadline)
+        ? this.calculatePoints(answer.submittedAt, questionStartTime, questionDeadline, question.difficulty)
         : 0;
       const responseTimeMs = answer ? Math.max(0, answer.submittedAt - questionStartTime) : QUESTION_DURATION_MS;
 
@@ -234,11 +200,12 @@ class TriviaTossGame extends BaseGame {
     this.advanceQuestion();
   }
 
-  calculatePoints(submittedAt, startedAt, endsAt) {
+  calculatePoints(submittedAt, startedAt, endsAt, difficulty) {
+    const { minPoints, maxSpeedBonus } = getDifficultySettings(difficulty);
     const timeRemainingMs = Math.max(0, endsAt - submittedAt);
     const questionDurationMs = Math.max(1, endsAt - startedAt);
-    const speedBonus = Math.round((timeRemainingMs / questionDurationMs) * MAX_SPEED_BONUS);
-    return MIN_CORRECT_POINTS + speedBonus;
+    const speedBonus = Math.round((timeRemainingMs / questionDurationMs) * maxSpeedBonus);
+    return minPoints + speedBonus;
   }
 
   advanceQuestion() {
@@ -262,11 +229,14 @@ class TriviaTossGame extends BaseGame {
     const question = QUESTION_BANK[this.state.questionIndex];
     const startedAt = Date.now();
     const endsAt = startedAt + QUESTION_DURATION_MS;
+    const { label: difficultyLabel } = getDifficultySettings(question.difficulty);
     this.setPhase("trivia_question");
     this.state.currentQuestion = {
       prompt: question.prompt,
       number: this.state.questionIndex + 1,
       total: QUESTION_BANK.length,
+      difficulty: question.difficulty,
+      difficultyLabel,
       options: buildTriviaOptions(question),
       startedAt,
       endsAt,
@@ -307,7 +277,7 @@ class TriviaTossGame extends BaseGame {
       return {
         layout: "trivia_question",
         title: "Trivia Toss",
-        subtitle: `Question ${this.state.currentQuestion.number} of ${this.state.currentQuestion.total}`,
+        subtitle: `Question ${this.state.currentQuestion.number} of ${this.state.currentQuestion.total} · ${this.state.currentQuestion.difficultyLabel}`,
         description: this.state.currentQuestion.prompt,
         questionEndsAt: this.state.currentQuestion.endsAt,
         questionDurationMs: this.state.currentQuestion.durationMs,
@@ -345,6 +315,8 @@ class TriviaTossGame extends BaseGame {
         layout: "answer_grid",
         title: `Question ${this.state.currentQuestion.number} of ${this.state.currentQuestion.total}`,
         questionNumber: this.state.currentQuestion.number,
+        difficultyLabel: this.state.currentQuestion.difficultyLabel,
+        difficulty: this.state.currentQuestion.difficulty,
         details: this.state.currentQuestion.prompt,
         questionEndsAt: this.state.currentQuestion.endsAt,
         questionDurationMs: this.state.currentQuestion.durationMs,
