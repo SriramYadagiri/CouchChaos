@@ -22,40 +22,40 @@
         <Poster
             id="Shark1"
             uri="pkg:/images/Shark1.png"
-            width="300"
-            height="200"
+            width="150"
+            height="100"
             translation="[1400, 50]"
             visible="false"
         />
         <Poster
             id="Shark2"
             uri="pkg:/images/Shark2.png"
-            width="300"
-            height="200"
+            width="150"
+            height="100"
             translation="[1400, 150]"
             visible="false"
         />
         <Poster
             id="Shark3"
             uri="pkg:/images/Shark3.png"
-            width="300"
-            height="200"
+            width="150"
+            height="100"
             translation="[1400, 250]"
             visible="false"
         />
         <Poster
             id="Whale"
             uri="pkg:/images/Whale.png"
-            width="300"
-            height="200"
+            width="150"
+            height="100"
             translation="[1400, 350]"
             visible="false"
         />
         <Poster
             id="Fish"
             uri="pkg:/images/Fish.png"
-            width="300"
-            height="200"
+            width="150"
+            height="100"
             translation="[100, 250]"
             visible="false"
         />
