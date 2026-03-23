@@ -32,7 +32,7 @@
             uri="pkg:/images/Shark2.png"
             width="300"
             height="200"
-            translation="[1400, 250]"
+            translation="[1400, 150]"
             visible="false"
         />
         <Poster
@@ -40,7 +40,7 @@
             uri="pkg:/images/Shark3.png"
             width="300"
             height="200"
-            translation="[1400, 450]"
+            translation="[1400, 250]"
             visible="false"
         />
         <Poster
@@ -48,7 +48,7 @@
             uri="pkg:/images/Whale.png"
             width="300"
             height="200"
-            translation="[1400, 650]"
+            translation="[1400, 350]"
             visible="false"
         />
         <Poster
