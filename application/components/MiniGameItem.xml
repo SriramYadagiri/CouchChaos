@@ -53,6 +53,25 @@
             horizAlign="center"
             color="0xD7E3FFFF"
         />
+
+        <!--
+            Voter character icons: up to 12 Poster nodes pre-created.
+            MiniGameItem.brs positions and shows only as many as needed.
+        -->
+        <Group id="voterIconGroup" translation="[0, 0]" visible="false">
+            <Poster id="voterIcon0"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon1"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon2"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon3"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon4"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon5"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon6"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon7"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon8"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon9"  width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon10" width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+            <Poster id="voterIcon11" width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
+        </Group>
     </children>
 
     <script type="text/brightscript" uri="MiniGameItem.brs" />

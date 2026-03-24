@@ -5,6 +5,13 @@ sub init()
     m.card = m.top.findNode("card")
     m.shadow = m.top.findNode("shadow")
     m.accent = m.top.findNode("accent")
+    m.voterIconGroup = m.top.findNode("voterIconGroup")
+
+    ' Cache references to all 12 voter icon Posters
+    m.voterIcons = []
+    for i = 0 to 11
+        m.voterIcons.push(m.top.findNode("voterIcon" + i.ToStr()))
+    end for
 end sub
 
 sub onContentChanged()
@@ -85,6 +92,62 @@ sub onContentChanged()
         m.descriptionLabel.text = itemTitle
         m.descriptionLabel.numLines = 2
     end if
+
+    ' Render voter character icons (only on game_vote cards)
+    if cardKind = "game_vote" then
+        renderVoterIcons(item, cardWidth, cardHeight)
+    else
+        hideAllVoterIcons()
+    end if
+end sub
+
+sub renderVoterIcons(item as Object, cardWidth as Float, cardHeight as Float)
+    ' Parse the comma-separated voter character URL list
+    voterUrls = []
+    if item.doesExist("votercharacterurls") and item.votercharacterurls <> invalid and item.votercharacterurls <> "" then
+        voterUrls = item.votercharacterurls.split(",")
+    end if
+
+    iconCount = voterUrls.count()
+    if iconCount = 0 then
+        hideAllVoterIcons()
+        return
+    end if
+
+    ' Layout: icon strip sits just above the footer label
+    ' Each icon is 28x28, spaced 4px apart, centered horizontally
+    iconSize = 28
+    iconSpacing = 4
+    maxIcons = 12
+    if iconCount > maxIcons then iconCount = maxIcons
+
+    totalWidth = (iconSize * iconCount) + (iconSpacing * (iconCount - 1))
+    startX = Int((cardWidth - totalWidth) / 2)
+    ' Position strip just above the voteLabel (which sits at cardHeight - 35)
+    iconY = Int(cardHeight - 35 - iconSize - 6)
+
+    m.voterIconGroup.visible = true
+    m.voterIconGroup.translation = [0, 0]
+
+    for i = 0 to 11
+        icon = m.voterIcons[i]
+        if i < iconCount then
+            icon.uri = voterUrls[i]
+            icon.translation = [startX + (i * (iconSize + iconSpacing)), iconY]
+            icon.visible = true
+        else
+            icon.uri = ""
+            icon.visible = false
+        end if
+    end for
+end sub
+
+sub hideAllVoterIcons()
+    m.voterIconGroup.visible = false
+    for i = 0 to 11
+        m.voterIcons[i].visible = false
+        m.voterIcons[i].uri = ""
+    end for
 end sub
 
 sub applyCardLayout(cardWidth as Float, cardHeight as Float)

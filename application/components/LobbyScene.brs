@@ -8,6 +8,7 @@ sub init()
     m.playerGrid = m.top.findNode("playerGrid")
     m.startVoteTask = CreateObject("roSGNode", "StartGameVoteTask")
     m.focusTarget = "start"
+    m.serverBase = "http://192.168.86.69:3000"
 
     m.top.observeField("roomCode", "onRoomCodeSet")
     m.startVoteTask.observeField("roomState", "onVoteStarted")
@@ -22,7 +23,7 @@ sub onRoomCodeSet()
     m.roomCodeLabel.text = m.top.roomCode
 
     m.qrCode = m.top.findNode("qrCode")
-    joinUrl = "http://192.168.86.69:3000/join?code=" + m.top.roomCode
+    joinUrl = m.serverBase + "/join?code=" + m.top.roomCode
 
     transfer = CreateObject("roUrlTransfer")
     encodedUrl = joinUrl
@@ -51,10 +52,15 @@ sub onRoomUpdate()
         if player.doesExist("isConnected") and player.isConnected = false then
             item.description = "Offline - reconnecting"
         end if
+
+        ' Attach character icon URL if the player has one
+        if player.doesExist("character") and player.character <> invalid and player.character <> "" then
+            item.addField("characterUrl", "string", false)
+            item.characterUrl = "pkg:/images/Characters/" + player.character + ".png"
+        end if
     end for
 
     m.playerGrid.content = content
-
 end sub
 
 sub cleanup()

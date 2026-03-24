@@ -18,21 +18,31 @@
             color="0x27C2FFFF"
         />
 
+        <!-- Character icon: sits on the left side of the card -->
+        <Poster
+            id="characterIcon"
+            width="52"
+            height="52"
+            translation="[10, 24]"
+            loadDisplayMode="scaleToFit"
+            visible="false"
+        />
+
         <Label
             id="playerName"
-            translation="[18, 18]"
-            width="184"
+            translation="[70, 14]"
+            width="138"
             height="36"
-            horizAlign="center"
+            horizAlign="left"
             color="0xFFFFFFFF"
         />
 
         <Label
             id="statusLabel"
-            translation="[18, 58]"
-            width="184"
+            translation="[70, 54]"
+            width="138"
             height="24"
-            horizAlign="center"
+            horizAlign="left"
             color="0xBFD8EAFF"
         />
     </children>

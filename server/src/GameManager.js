@@ -381,8 +381,25 @@ class GameManager {
     return publicState;
   }
 
+  // Build a map of gameId -> array of voter character slugs
+  buildVoterCharactersByGame(room) {
+    const byGame = {};
+    for (const game of room.games) {
+      byGame[game.id] = [];
+    }
+    for (const [playerId, gameId] of Object.entries(room.gameVotes)) {
+      if (!byGame[gameId]) continue;
+      const player = room.players.find((p) => p.id === playerId);
+      if (player && player.character) {
+        byGame[gameId].push(player.character);
+      }
+    }
+    return byGame;
+  }
+
   buildManagerTvView(room) {
     const connectedCount = room.players.filter((player) => player.isConnected).length;
+    const voterCharsByGame = this.buildVoterCharactersByGame(room);
 
     if (room.phase === "game_select") {
       return {
@@ -393,7 +410,8 @@ class GameManager {
         cards: room.games.map((game) => ({
           title: game.name,
           description: game.description,
-          footer: `${game.votes} vote(s)`
+          footer: `${game.votes} vote(s)`,
+          voterCharacters: voterCharsByGame[game.id] || []
         }))
       };
     }
@@ -407,7 +425,8 @@ class GameManager {
         cards: room.games.map((game) => ({
           title: game.name,
           description: game.description,
-          footer: `${game.votes} vote(s)`
+          footer: `${game.votes} vote(s)`,
+          voterCharacters: voterCharsByGame[game.id] || []
         }))
       };
     }

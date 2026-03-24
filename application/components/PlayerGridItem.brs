@@ -3,6 +3,7 @@ sub init()
     m.statusLabel = m.top.findNode("statusLabel")
     m.card = m.top.findNode("card")
     m.accent = m.top.findNode("accent")
+    m.characterIcon = m.top.findNode("characterIcon")
 end sub
 
 sub onContentChanged()
@@ -34,5 +35,29 @@ sub onContentChanged()
         m.card.color = "0x24313FFF"
         m.accent.color = "0xF5A623FF"
         m.statusLabel.color = "0xFFD18BFF"
+    end if
+
+    ' Load character icon if provided
+    characterUrl = ""
+    if item.doesExist("characterUrl") and item.characterUrl <> invalid and item.characterUrl <> "" then
+        characterUrl = item.characterUrl
+    end if
+
+    if characterUrl <> "" then
+        m.characterIcon.uri = characterUrl
+        m.characterIcon.visible = true
+        ' Shift labels right to make room for icon
+        m.playerName.translation = [70, 14]
+        m.playerName.width = 138
+        m.statusLabel.translation = [70, 54]
+        m.statusLabel.width = 138
+    else
+        m.characterIcon.uri = ""
+        m.characterIcon.visible = false
+        ' Use full-width layout when no icon
+        m.playerName.translation = [14, 14]
+        m.playerName.width = 194
+        m.statusLabel.translation = [14, 54]
+        m.statusLabel.width = 194
     end if
 end sub

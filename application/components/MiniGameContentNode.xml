@@ -8,5 +8,7 @@
         <field id="description" type="string" />
         <field id="cardwidth" type="float" />
         <field id="cardheight" type="float" />
+        <!-- Comma-separated list of character slugs who voted for this game -->
+        <field id="votercharacterurls" type="string" />
     </interface>
 </component>

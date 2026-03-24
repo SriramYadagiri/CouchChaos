@@ -16,6 +16,7 @@ sub init()
     m.triviaQuestionEndsAt = invalid
     m.triviaQuestionDurationMs = 0
     m.triviaCountdown = invalid
+    m.serverBase = "http://192.168.86.69:3000"
 
     m.top.observeField("roomCode", "onRoomCodeSet")
     m.pollTask.observeField("roomState", "onRoomUpdate")
@@ -54,6 +55,12 @@ sub onRoomUpdate()
     phase = ""
     if room.doesExist("phase") then phase = room.phase
     m.currentPhase = phase
+
+    ' Build a map of gameId -> array of voter character URLs
+    ' The server sends players[] with character slugs and gameVotes map isn't exposed,
+    ' but the tvView cards now carry voterCharacters arrays (added server-side).
+    ' We'll pass the full room to updateTvView so it can access playerCharacters.
+    m.currentRoom = room
 
     if room.doesExist("tvView") and room.tvView <> invalid then
         updateTvView(room.tvView)
@@ -242,6 +249,27 @@ sub updateTriviaTimerBar()
     end if
 end sub
 
+' Build the voter character URL string for a given card index.
+' The server puts voterCharacters as an array on each tvView card.
+function buildVoterCharacterUrls(card as Object) as String
+    if not card.doesExist("voterCharacters") then return ""
+    voters = card.voterCharacters
+    if voters = invalid then return ""
+
+    urls = ""
+    for each slug in voters
+        if slug <> invalid and slug <> "" then
+            url = m.serverBase + "/Characters/" + slug + ".svg"
+            if urls = "" then
+                urls = url
+            else
+                urls = urls + "," + url
+            end if
+        end if
+    end for
+    return urls
+end function
+
 sub renderCardGrid(tvView as Object, interactive as Boolean, numColumns as Integer, numRows as Integer, itemSize as Object, translation as Object, cardKind as String)
     if interactive then
         m.miniGameGrid.drawFocusFeedback = true
@@ -275,8 +303,17 @@ sub renderCardGrid(tvView as Object, interactive as Boolean, numColumns as Integ
             item.cardheight = itemSize[1]
             if card.doesExist("cardColor") then item.cardcolor = card.cardColor
             if interactive and card.doesExist("footer") then item.votecount = card.footer
+
+            ' Attach voter character icon URLs for game_vote cards
+            if cardKind = "game_vote" then
+                voterUrls = buildVoterCharacterUrls(card)
+                item.votercharacterurls = voterUrls
+                signature = signature + item.title + "|" + item.bodytext + "|" + item.footertext + "|" + voterUrls + "|"
+            else
+                signature = signature + item.title + "|" + item.bodytext + "|" + item.footertext + "|"
+            end if
+
             content.appendChild(item)
-            signature = signature + item.title + "|" + item.bodytext + "|" + item.footertext + "|"
         end for
     end if
 
