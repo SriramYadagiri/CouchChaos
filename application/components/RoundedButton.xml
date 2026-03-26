@@ -12,74 +12,130 @@
     </interface>
 
     <children>
-        <Group id="shadowGroup">
-            <Poster
-                id="shadowLeft"
-                uri="pkg:/components/images/rounded-button/btn_corner_left.png"
-                blendColor="0x050D16CC"
+        <!-- Hover float animation: bobs the entire button up and down -->
+        <Animation
+            id="hoverAnim"
+            duration="1.1"
+            repeat="true"
+            easeFunction="sinusoid"
+            control="none"
+        >
+            <Vector2DFieldInterpolator
+                id="hoverInterp"
+                fieldToInterp="buttonInner.translation"
+                key="[0.0, 0.5, 1.0]"
+                keyValue="[[0, 0], [0, -3], [0, 0]]"
             />
+        </Animation>
+
+        <!-- Focus pop-in scale animation -->
+        <Animation
+            id="focusScaleAnim"
+            duration="0.18"
+            repeat="false"
+            easeFunction="outBack"
+            control="none"
+        >
+            <Vector2DFieldInterpolator
+                id="focusScaleInterp"
+                fieldToInterp="buttonInner.scale"
+                key="[0.0, 1.0]"
+                keyValue="[[0.93, 0.93], [1.0, 1.0]]"
+            />
+        </Animation>
+
+        <!-- Unfocus shrink animation -->
+        <Animation
+            id="unfocusScaleAnim"
+            duration="0.13"
+            repeat="false"
+            easeFunction="inOutCubic"
+            control="none"
+        >
+            <Vector2DFieldInterpolator
+                id="unfocusScaleInterp"
+                fieldToInterp="buttonInner.scale"
+                key="[0.0, 1.0]"
+                keyValue="[[1.0, 1.0], [0.97, 0.97]]"
+            />
+        </Animation>
+
+        <!--
+            buttonInner wraps all visual content so scale/translation
+            animations apply to the whole button as one unit.
+        -->
+        <Group id="buttonInner" scaleRotateCenter="[120, 28]">
+
+            <Group id="shadowGroup">
+                <Poster
+                    id="shadowLeft"
+                    uri="pkg:/components/images/rounded-button/btn_corner_left.png"
+                    blendColor="0x050D16CC"
+                />
+                <Poster
+                    id="shadowCenter"
+                    uri="pkg:/components/images/rounded-button/rectangle_background.png"
+                    blendColor="0x050D16CC"
+                />
+                <Poster
+                    id="shadowRight"
+                    uri="pkg:/components/images/rounded-button/btn_corner_right.png"
+                    blendColor="0x050D16CC"
+                />
+            </Group>
+
+            <Group id="baseGroup">
+                <Poster
+                    id="baseLeft"
+                    uri="pkg:/components/images/rounded-button/btn_corner_left.png"
+                    blendColor="0x1E8FFFFF"
+                />
+                <Poster
+                    id="baseCenter"
+                    uri="pkg:/components/images/rounded-button/rectangle_background.png"
+                    blendColor="0x1E8FFFFF"
+                />
+                <Poster
+                    id="baseRight"
+                    uri="pkg:/components/images/rounded-button/btn_corner_right.png"
+                    blendColor="0x1E8FFFFF"
+                />
+            </Group>
+
+            <Group id="focusGroup" opacity="0">
+                <Poster
+                    id="focusLeft"
+                    uri="pkg:/components/images/rounded-button/btn_corner_left.png"
+                    blendColor="0x2ACBFFFF"
+                />
+                <Poster
+                    id="focusCenter"
+                    uri="pkg:/components/images/rounded-button/rectangle_background.png"
+                    blendColor="0x2ACBFFFF"
+                />
+                <Poster
+                    id="focusRight"
+                    uri="pkg:/components/images/rounded-button/btn_corner_right.png"
+                    blendColor="0x2ACBFFFF"
+                />
+            </Group>
+
             <Poster
-                id="shadowCenter"
+                id="glowStrip"
                 uri="pkg:/components/images/rounded-button/rectangle_background.png"
-                blendColor="0x050D16CC"
+                blendColor="0x7DE3FFFF"
             />
-            <Poster
-                id="shadowRight"
-                uri="pkg:/components/images/rounded-button/btn_corner_right.png"
-                blendColor="0x050D16CC"
+
+            <Label
+                id="label"
+                width="240"
+                height="28"
+                horizAlign="center"
+                vertAlign="center"
+                color="0x06111DFF"
             />
+
         </Group>
-
-        <Group id="baseGroup">
-            <Poster
-                id="baseLeft"
-                uri="pkg:/components/images/rounded-button/btn_corner_left.png"
-                blendColor="0x1E8FFFFF"
-            />
-            <Poster
-                id="baseCenter"
-                uri="pkg:/components/images/rounded-button/rectangle_background.png"
-                blendColor="0x1E8FFFFF"
-            />
-            <Poster
-                id="baseRight"
-                uri="pkg:/components/images/rounded-button/btn_corner_right.png"
-                blendColor="0x1E8FFFFF"
-            />
-        </Group>
-
-        <Group id="focusGroup" opacity="0">
-            <Poster
-                id="focusLeft"
-                uri="pkg:/components/images/rounded-button/btn_corner_left.png"
-                blendColor="0x2ACBFFFF"
-            />
-            <Poster
-                id="focusCenter"
-                uri="pkg:/components/images/rounded-button/rectangle_background.png"
-                blendColor="0x2ACBFFFF"
-            />
-            <Poster
-                id="focusRight"
-                uri="pkg:/components/images/rounded-button/btn_corner_right.png"
-                blendColor="0x2ACBFFFF"
-            />
-        </Group>
-
-        <Poster
-            id="glowStrip"
-            uri="pkg:/components/images/rounded-button/rectangle_background.png"
-            blendColor="0x7DE3FFFF"
-        />
-
-        <Label
-            id="label"
-            width="240"
-            height="28"
-            horizAlign="center"
-            vertAlign="center"
-            color="0x06111DFF"
-        />
     </children>
 
     <script type="text/brightscript" uri="RoundedButton.brs" />

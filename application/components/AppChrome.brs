@@ -24,14 +24,14 @@ sub onBackStateChanged()
         m.titleLabel.width = 700
         m.subtitleLabel.translation = [290, 96]
         m.subtitleLabel.width = 780
-        m.bodyLabel.translation = [90, 138]
+        m.bodyLabel.translation = [90, 146]
         m.bodyLabel.width = 1070
     else
         m.titleLabel.translation = [90, 52]
         m.titleLabel.width = 900
         m.subtitleLabel.translation = [90, 96]
         m.subtitleLabel.width = 980
-        m.bodyLabel.translation = [90, 138]
+        m.bodyLabel.translation = [90, 146]
         m.bodyLabel.width = 1070
     end if
 end sub

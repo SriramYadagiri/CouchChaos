@@ -41,6 +41,18 @@
             visible="false"
         />
 
+        <Label
+            id="wordSandwichLetters"
+            translation="[90, 178]"
+            width="1100"
+            height="64"
+            numLines="1"
+            horizAlign="center"
+            font="font:LargeBoldSystemFont"
+            color="0xFFFFFFFF"
+            visible="false"
+        />
+
         <Timer
             id="triviaTimer"
             repeat="true"

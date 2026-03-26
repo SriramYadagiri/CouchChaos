@@ -7,36 +7,501 @@
   <link rel="stylesheet" href="/styles.css" />
   <script src="/socket.io/socket.io.js"></script>
   <style>
+    /* ── Kahoot-style answer grid ── */
+    .kahoot-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 12px;
+      padding: 12px;
+      height: 100%;
+      box-sizing: border-box;
+    }
+
+    .kahoot-btn {
+      position: relative;
+      border: none;
+      border-radius: 18px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 16px 12px;
+      font: inherit;
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      transition: transform 120ms ease, opacity 120ms ease, box-shadow 120ms ease;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+      overflow: hidden;
+      min-height: 90px;
+    }
+
+    .kahoot-btn:active {
+      transform: scale(0.96);
+    }
+
+    .kahoot-btn:disabled {
+      cursor: default;
+    }
+
+    /* Color variants */
+    .kahoot-btn.red    { background: #c0392b; }
+    .kahoot-btn.blue   { background: #2980b9; }
+    .kahoot-btn.yellow { background: #d4ac0d; color: #111; }
+    .kahoot-btn.green  { background: #239b56; }
+
+    /* Already answered state */
+    .kahoot-btn.is-my-answer {
+      box-shadow: 0 0 0 4px #fff, 0 6px 24px rgba(0,0,0,0.4);
+      transform: scale(1.03);
+    }
+
+    /* Reveal: correct answer glows, wrong dims */
+    .kahoot-btn.is-correct {
+      box-shadow: 0 0 0 4px #fff, 0 0 28px 6px rgba(255,255,255,0.45);
+      transform: scale(1.04);
+    }
+
+    .kahoot-btn.is-wrong {
+      opacity: 0.32;
+      transform: scale(0.96);
+    }
+
+    /* Full-screen question view layout */
+    .trivia-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    .trivia-question-bar {
+      flex: 0 0 auto;
+      padding: 14px 20px 10px;
+      background: var(--panel);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .trivia-question-kicker {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #8fdfff;
+      margin: 0 0 4px;
+    }
+
+    .trivia-question-text {
+      font-size: clamp(16px, 4.5vw, 22px);
+      font-weight: 700;
+      line-height: 1.35;
+      margin: 0 0 8px;
+      color: var(--text);
+    }
+
+    .trivia-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .trivia-timer-track {
+      flex: 1;
+      height: 6px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+      overflow: hidden;
+      min-width: 60px;
+    }
+
+    .trivia-timer-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: #27c2ff;
+      transition: background 300ms ease;
+    }
+
+    .trivia-status-chip {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .trivia-answers-area {
+      flex: 1 1 auto;
+      overflow: hidden;
+      padding: 8px;
+    }
+
+    /* Result overlay on top of answer grid */
+    .trivia-result-banner {
+      padding: 14px 20px;
+      border-radius: 18px;
+      margin: 8px;
+      text-align: center;
+      animation: slide-up 250ms cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    .trivia-result-banner.correct {
+      background: rgba(39, 175, 99, 0.25);
+      border: 2px solid rgba(39, 175, 99, 0.6);
+    }
+
+    .trivia-result-banner.wrong {
+      background: rgba(231, 76, 60, 0.2);
+      border: 2px solid rgba(231, 76, 60, 0.5);
+    }
+
+    .trivia-result-banner.timed-out {
+      background: rgba(180, 120, 0, 0.2);
+      border: 2px solid rgba(180, 120, 0, 0.5);
+    }
+
+    .trivia-result-emoji {
+      font-size: 32px;
+      margin-bottom: 4px;
+    }
+
+    .trivia-result-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0 0 4px;
+    }
+
+    .trivia-result-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    @keyframes slide-up {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    /* Score waiting message */
+    .waiting-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(39,194,255,0.12);
+      border: 1px solid rgba(39,194,255,0.25);
+      font-size: 13px;
+      font-weight: 700;
+      color: #92e3ff;
+      margin-top: 8px;
+    }
+
     .difficulty-badge {
       display: inline-block;
-      margin-bottom: 8px;
-      padding: 4px 10px;
+      margin-bottom: 4px;
+      padding: 3px 10px;
       border-radius: 999px;
       font-size: 11px;
       font-weight: 800;
       letter-spacing: 0.12em;
       text-transform: uppercase;
     }
- 
-    .difficulty-badge[data-difficulty="1"] {
-      background: rgba(39, 194, 100, 0.18);
-      color: #4ddb8a;
+
+    .difficulty-badge[data-difficulty="1"] { background: rgba(39,194,100,0.18); color: #4ddb8a; }
+    .difficulty-badge[data-difficulty="2"] { background: rgba(212,172,13,0.18);  color: #f0c830; }
+    .difficulty-badge[data-difficulty="3"] { background: rgba(255,108,129,0.18); color: #ff6c81; }
+
+    .word-sandwich-card {
+      display: grid;
+      gap: 16px;
+      padding: 20px;
     }
- 
-    .difficulty-badge[data-difficulty="2"] {
-      background: rgba(212, 172, 13, 0.18);
-      color: #f0c830;
+
+    .word-sandwich-topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
     }
- 
-    .difficulty-badge[data-difficulty="3"] {
-      background: rgba(255, 108, 129, 0.18);
-      color: #ff6c81;
+
+    .word-sandwich-round-chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(39,194,255,0.12);
+      color: #92e3ff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .word-sandwich-letters {
+      margin: 0;
+      font-size: clamp(48px, 16vw, 84px);
+      line-height: 0.9;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #ffffff;
+      text-align: center;
+      text-shadow: 0 10px 30px rgba(39, 194, 255, 0.22);
+    }
+
+    .word-sandwich-subcopy {
+      margin: 0;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.45;
+    }
+
+    .word-sandwich-timers {
+      display: grid;
+      gap: 10px;
+    }
+
+    .word-sandwich-timer-row {
+      display: grid;
+      gap: 6px;
+    }
+
+    .word-sandwich-timer-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #9fc9e3;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .word-sandwich-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    .word-sandwich-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2ad1ff, #238dff);
+      transition: width 120ms linear, background 160ms ease;
+    }
+
+    .word-sandwich-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .word-sandwich-stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      text-align: center;
+    }
+
+    .word-sandwich-stat-value {
+      display: block;
+      font-size: 24px;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .word-sandwich-stat-label {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .word-sandwich-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    .word-sandwich-form.is-locked {
+      opacity: 0.72;
+    }
+
+    .word-sandwich-input {
+      width: 100%;
+      padding: 16px 18px;
+      border: 1px solid rgba(143, 223, 255, 0.22);
+      border-radius: 18px;
+      background: rgba(4, 14, 24, 0.72);
+      color: var(--text);
+      font: inherit;
+      font-size: 20px;
+      font-weight: 700;
+      text-transform: lowercase;
+      outline: none;
+    }
+
+    .word-sandwich-input:focus {
+      border-color: rgba(39, 194, 255, 0.72);
+      box-shadow: 0 0 0 3px rgba(39, 194, 255, 0.18);
+    }
+
+    .word-sandwich-submit {
+      min-width: 116px;
+    }
+
+    .word-sandwich-columns {
+      display: grid;
+      gap: 14px;
+    }
+
+    .word-sandwich-panel {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .word-sandwich-panel-title {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .word-sandwich-word-list,
+    .word-sandwich-board {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+    }
+
+    .word-sandwich-word-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .word-sandwich-word-item.is-bonus {
+      background: rgba(39,194,255,0.12);
+      border: 1px solid rgba(39,194,255,0.18);
+    }
+
+    .word-sandwich-word-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: lowercase;
+    }
+
+    .word-sandwich-word-badge {
+      font-size: 11px;
+      font-weight: 800;
+      color: #92e3ff;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    .word-sandwich-row {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.04);
+      transition: transform 320ms ease, opacity 320ms ease, background 180ms ease;
+      will-change: transform, opacity;
+    }
+
+    .word-sandwich-row.is-me {
+      background: rgba(39,194,255,0.14);
+      border-color: rgba(39,194,255,0.18);
+    }
+
+    .word-sandwich-rank {
+      width: 24px;
+      font-size: 16px;
+      font-weight: 900;
+      color: #92e3ff;
+      text-align: right;
+    }
+
+    .word-sandwich-player {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .word-sandwich-player img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      image-rendering: pixelated;
+      flex-shrink: 0;
+    }
+
+    .word-sandwich-player-name {
+      min-width: 0;
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .word-sandwich-player-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .word-sandwich-count {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+
+    .word-sandwich-bonus {
+      font-size: 11px;
+      font-weight: 800;
+      color: #92e3ff;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 480px) {
+      .word-sandwich-form {
+        grid-template-columns: 1fr;
+      }
+
+      .word-sandwich-stats {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body class="theme-shell controller-page">
-  <main class="mobile-shell controller-shell">
-    <section class="mobile-card controller-hero">
+  <main class="mobile-shell controller-shell" id="mainShell">
+    <section class="mobile-card controller-hero" id="heroCard">
       <div class="hero-topline">
         <p class="brand-pill">COUCH CHAOS</p>
         <div class="meta-chip-row">
@@ -69,35 +534,29 @@ let countdownTimerId = null;
 let lastToastKey = "";
 let activeQuestionKey = "";
 let currentStage = null;
-let myCharacter = null; // assigned character slug for this player
+let myCharacter = null;
+let wordSandwichBoardOrder = new Map();
 
-if (!name || !code) {
-  window.location.href = "/";
-}
+if (!name || !code) { window.location.href = "/"; }
 
 if (!clientId) {
-  if (window.crypto && typeof window.crypto.randomUUID === "function") {
-    clientId = window.crypto.randomUUID();
-  } else {
-    clientId = `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-  }
+  clientId = (window.crypto?.randomUUID?.() || `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`);
   localStorage.setItem("clientId", clientId);
 }
 
 document.getElementById("playerChip").innerText = name ? `Player: ${name}` : "";
 document.getElementById("roomChip").innerText = code ? `Room: ${code}` : "";
 
-// ---- Character helpers ----
+// ── Character helpers ──────────────────────────────────────────────
 function characterUrl(slug) {
-  if (!slug) return "";
-  return `/Characters/${slug}.svg`;
+  return slug ? `/Characters/${slug}.svg` : "";
 }
 
 function setMyCharacter(slug) {
   if (!slug || myCharacter === slug) return;
   myCharacter = slug;
   const badge = document.getElementById("myCharacterBadge");
-  const img = document.getElementById("myCharacterImg");
+  const img   = document.getElementById("myCharacterImg");
   const label = document.getElementById("myCharacterName");
   img.src = characterUrl(slug);
   img.alt = slug;
@@ -105,25 +564,18 @@ function setMyCharacter(slug) {
   badge.style.display = "flex";
 }
 
-// ---- DOM helpers ----
+// ── DOM helpers ────────────────────────────────────────────────────
 function createCard(className = "mobile-card") {
-  const section = document.createElement("section");
-  section.className = className;
-  return section;
+  const s = document.createElement("section");
+  s.className = className;
+  return s;
 }
 
 function createPhaseMessage(title, body) {
   const card = createCard("mobile-card section-card");
-  const heading = document.createElement("h2");
-  heading.className = "section-title";
-  heading.innerText = title;
-
-  const copy = document.createElement("p");
-  copy.className = "section-copy";
-  copy.innerText = body;
-
-  card.appendChild(heading);
-  card.appendChild(copy);
+  const h = document.createElement("h2"); h.className = "section-title"; h.innerText = title;
+  const p = document.createElement("p");  p.className = "section-copy";  p.innerText = body;
+  card.appendChild(h); card.appendChild(p);
   return card;
 }
 
@@ -134,20 +586,18 @@ function stopCountdownTimer() {
 }
 
 function formatPlace(place) {
-  const value = Number(place || 0);
-  if (value % 100 >= 11 && value % 100 <= 13) return `${value}th`;
-  if (value % 10 === 1) return `${value}st`;
-  if (value % 10 === 2) return `${value}nd`;
-  if (value % 10 === 3) return `${value}rd`;
-  return `${value}th`;
+  const v = Number(place || 0);
+  if (v % 100 >= 11 && v % 100 <= 13) return `${v}th`;
+  if (v % 10 === 1) return `${v}st`;
+  if (v % 10 === 2) return `${v}nd`;
+  if (v % 10 === 3) return `${v}rd`;
+  return `${v}th`;
 }
 
 function buildTriviaToast(latestResult) {
-  if (!latestResult || !latestResult.questionNumber) return null;
-
+  if (!latestResult?.questionNumber) return null;
   const title = latestResult.wasCorrect ? `+${latestResult.pointsEarned} points` : "0 points";
   let body = "";
-
   if (latestResult.timedOut) {
     body = `Time ran out. Total: ${latestResult.totalPoints} pts. Place: ${formatPlace(latestResult.place)}`;
   } else if (latestResult.wasCorrect) {
@@ -156,476 +606,716 @@ function buildTriviaToast(latestResult) {
   } else {
     body = `Wrong answer. Total: ${latestResult.totalPoints} pts. Place: ${formatPlace(latestResult.place)}`;
   }
-
   return {
     key: `trivia-result-${latestResult.questionNumber}-${latestResult.totalPoints}-${latestResult.timedOut ? "timeout" : "answered"}`,
-    title,
-    body
+    title, body
   };
 }
 
 function showToast(message) {
   if (!message || !message.key || message.key === lastToastKey) return;
   lastToastKey = message.key;
-
   const stack = document.getElementById("toastStack");
   const toast = document.createElement("div");
   toast.className = "toast-card";
-
-  const title = document.createElement("p");
-  title.className = "toast-title";
-  title.innerText = message.title;
-
-  const body = document.createElement("p");
-  body.className = "toast-copy";
-  body.innerText = message.body;
-
+  const t = document.createElement("p"); t.className = "toast-title"; t.innerText = message.title;
+  const b = document.createElement("p"); b.className = "toast-copy";  b.innerText = message.body;
   const dismiss = () => {
     if (!toast.isConnected) return;
     toast.classList.add("is-hiding");
-    window.setTimeout(() => {
-      if (toast.isConnected) toast.remove();
-    }, 150);
+    window.setTimeout(() => { if (toast.isConnected) toast.remove(); }, 150);
   };
-
-  toast.appendChild(title);
-  toast.appendChild(body);
+  toast.appendChild(t); toast.appendChild(b);
   toast.addEventListener("click", dismiss);
   stack.appendChild(toast);
   window.setTimeout(dismiss, 3000);
-}
-
-function attachCountdown(detailsEl, questionEndsAt) {
-  stopCountdownTimer();
-  if (!questionEndsAt) return;
-
-  const updateCountdown = () => {
-    const remainingMs = Math.max(0, questionEndsAt - Date.now());
-    const seconds = (remainingMs / 1000).toFixed(1);
-    detailsEl.innerText = `Choose quickly. ${seconds}s left`;
-    if (remainingMs <= 0) {
-      stopCountdownTimer();
-      detailsEl.innerText = "Time is up. Waiting for results.";
-    }
-  };
-
-  updateCountdown();
-  countdownTimerId = window.setInterval(updateCountdown, 100);
 }
 
 function sendGameAction(action, payload, onSuccess) {
   pendingAction = action;
   socket.emit("game_action", { code, action, payload }, (response) => {
     pendingAction = "";
-
     if (!response?.ok) {
       document.getElementById("details").innerText = response?.error || "Unable to submit action.";
       render(latestState, latestPrivateState);
       return;
     }
-
-    if (typeof onSuccess === "function") onSuccess();
+    if (typeof onSuccess === "function") onSuccess(response);
     render(latestState, latestPrivateState);
   });
 }
 
-// ---- Character avatar builder ----
+// ── Character avatar ───────────────────────────────────────────────
 function buildCharacterAvatar(slug, label, size = 48, dimmed = false, highlight = false) {
   const wrap = document.createElement("div");
   wrap.className = "character-avatar" + (dimmed ? " is-dimmed" : "") + (highlight ? " is-highlight" : "");
-
   const img = document.createElement("img");
-  img.src = characterUrl(slug);
-  img.alt = label || slug;
-  img.width = size;
-  img.height = size;
+  img.src = characterUrl(slug); img.alt = label || slug;
+  img.width = size; img.height = size;
   wrap.appendChild(img);
-
   if (label) {
     const lbl = document.createElement("span");
-    lbl.className = "character-avatar-label";
-    lbl.innerText = label;
+    lbl.className = "character-avatar-label"; lbl.innerText = label;
     wrap.appendChild(lbl);
   }
-
   return wrap;
 }
 
-// Renders a row of small voter character icons above/beside a vote target
 function buildVoterPips(voterCharacters) {
-  if (!voterCharacters || voterCharacters.length === 0) return null;
-  const row = document.createElement("div");
-  row.className = "voter-pips";
+  if (!voterCharacters?.length) return null;
+  const row = document.createElement("div"); row.className = "voter-pips";
   for (const slug of voterCharacters) {
     const pip = document.createElement("img");
-    pip.src = characterUrl(slug);
-    pip.alt = slug;
-    pip.className = "voter-pip";
+    pip.src = characterUrl(slug); pip.alt = slug; pip.className = "voter-pip";
     row.appendChild(pip);
   }
   return row;
 }
 
-// ---- Renderers ----
-function renderPrivateCard(content, privateState) {
-  if (!privateState || !privateState.gameId || !privateState.title) return;
+function animateWordSandwichBoard(list, entries) {
+  const nextOrder = new Map();
+  const rowHeight = 66;
 
-  const card = createCard("mobile-card section-card");
-  const heading = document.createElement("h2");
-  heading.className = "section-title";
-  heading.innerText = privateState.title;
+  entries.forEach((entry, index) => {
+    nextOrder.set(entry.id, index);
+    const row = list.querySelector(`[data-player-id="${entry.id}"]`);
+    if (!row) return;
 
-  const body = document.createElement("p");
-  body.className = "question-text";
-  body.innerText = privateState.message || "";
-
-  card.appendChild(heading);
-  card.appendChild(body);
-
-  if (privateState.footer) {
-    const footer = document.createElement("p");
-    footer.className = "section-copy";
-    footer.style.marginTop = "12px";
-    footer.innerText = privateState.footer;
-    card.appendChild(footer);
-  }
-
-  content.appendChild(card);
-}
-
-function renderGameVote(content, view, detailsEl) {
-  detailsEl.innerText = votedGameId
-    ? "Your vote is locked in."
-    : (view.details || "Choose a minigame on your phone.");
-
-  const grid = document.createElement("div");
-  grid.className = "vote-grid";
-
-  (view.options || []).forEach((option) => {
-    const btn = document.createElement("button");
-    btn.className = `vote-card${votedGameId === option.id ? " is-selected" : ""}`;
-    btn.disabled = Boolean(votedGameId);
-
-    const title = document.createElement("span");
-    title.className = "vote-card-title";
-    title.innerText = option.label;
-
-    const desc = document.createElement("span");
-    desc.className = "vote-card-copy";
-    desc.innerText = option.description || "";
-
-    const meta = document.createElement("span");
-    meta.className = "vote-card-meta";
-    meta.innerText = option.meta || "";
-
-    btn.appendChild(title);
-    btn.appendChild(desc);
-    btn.appendChild(meta);
-
-    btn.onclick = () => {
-      socket.emit("vote_game", { code, gameId: option.id }, (response) => {
-        if (!response?.ok) {
-          detailsEl.innerText = response?.error || "Unable to submit vote.";
-          render(latestState, latestPrivateState);
-          return;
-        }
-
-        votedGameId = option.id;
-        render(latestState, latestPrivateState);
-      });
-    };
-
-    grid.appendChild(btn);
+    const previousIndex = wordSandwichBoardOrder.get(entry.id);
+    const offset = previousIndex == null ? 18 : (previousIndex - index) * rowHeight;
+    row.style.transform = previousIndex == null ? "translateX(18px)" : `translateY(${offset}px)`;
+    row.style.opacity = previousIndex == null ? "0" : "0.84";
   });
 
-  content.appendChild(grid);
-}
-
-function renderAnswerGrid(content, view) {
-  const promptCard = createCard("mobile-card section-card");
-
-  if (view.difficultyLabel) {
-    const difficultyBadge = document.createElement("p");
-    difficultyBadge.className = "question-kicker difficulty-badge";
-    difficultyBadge.setAttribute("data-difficulty", view.difficulty || 1);
-    difficultyBadge.innerText = view.difficultyLabel;
-    promptCard.appendChild(difficultyBadge);
-  }
-
-  const promptLabel = document.createElement("p");
-  promptLabel.className = "question-kicker";
-  promptLabel.innerText = "Choose an answer";
-
-  const promptText = document.createElement("p");
-  promptText.className = "question-text";
-  promptText.innerText = view.details || "Waiting for the next question.";
-
-  promptCard.appendChild(promptLabel);
-  promptCard.appendChild(promptText);
-  content.appendChild(promptCard);
-
-  const optionWrap = document.createElement("div");
-  optionWrap.className = "answer-grid";
-
-  (view.options || []).forEach((option) => {
-    const btn = document.createElement("button");
-    btn.className = "answer-card";
-    btn.disabled = pendingAction === option.action;
-    btn.style.backgroundColor = option.background || "#1b496e";
-    btn.style.color = option.color || "#ffffff";
-
-    const label = document.createElement("span");
-    label.className = "answer-card-title";
-    label.innerText = option.label;
-
-    const copy = document.createElement("span");
-    copy.className = "answer-card-copy";
-    copy.innerText = option.description || "";
-
-    btn.appendChild(label);
-    btn.appendChild(copy);
-    btn.onclick = () => sendGameAction(option.action, option.payload);
-    optionWrap.appendChild(btn);
+  requestAnimationFrame(() => {
+    entries.forEach((entry) => {
+      const row = list.querySelector(`[data-player-id="${entry.id}"]`);
+      if (!row) return;
+      row.style.transform = "translateX(0) translateY(0)";
+      row.style.opacity = "1";
+    });
   });
 
-  content.appendChild(optionWrap);
+  wordSandwichBoardOrder = nextOrder;
 }
 
-function renderLeaderboard(content, view) {
-  const board = document.createElement("section");
-  board.className = "mobile-card leaderboard-card";
+function renderWordSandwiches(content, view, detailsEl) {
+  detailsEl.innerText = view.details || "Find words with the three letters buried in the middle.";
 
-  const heading = document.createElement("h2");
-  heading.className = "section-title";
-  heading.innerText = view.title || "Standings";
-  board.appendChild(heading);
+  const card = createCard("mobile-card word-sandwich-card");
 
-  const list = document.createElement("ol");
-  list.className = "leaderboard-list";
+  const topline = document.createElement("div");
+  topline.className = "word-sandwich-topline";
+  const titleBlock = document.createElement("div");
+  const title = document.createElement("h2"); title.className = "section-title"; title.innerText = view.title || "Word Sandwiches";
+  const subcopy = document.createElement("p"); subcopy.className = "word-sandwich-subcopy"; subcopy.innerText = view.isFinal
+    ? "Round complete. Final standings are locked in."
+    : "Find words that contain the center letters with at least one letter on each side.";
+  titleBlock.appendChild(title);
+  titleBlock.appendChild(subcopy);
+  const roundChip = document.createElement("span");
+  roundChip.className = "word-sandwich-round-chip";
+  roundChip.innerText = view.isFinal ? "Final" : `Round ${view.segmentNumber}/${view.segmentTotal}`;
+  topline.appendChild(titleBlock);
+  topline.appendChild(roundChip);
+  card.appendChild(topline);
 
-  (view.items || []).forEach((entry) => {
-    const item = document.createElement("li");
-    item.className = "leaderboard-row";
+  const letters = document.createElement("p");
+  letters.className = "word-sandwich-letters";
+  letters.innerText = view.letters || "---";
+  card.appendChild(letters);
 
-    // Character icon if available
+  if (!view.isFinal) {
+    const timers = document.createElement("div");
+    timers.className = "word-sandwich-timers";
+
+    const segmentRow = document.createElement("div");
+    segmentRow.className = "word-sandwich-timer-row";
+    const segmentMeta = document.createElement("div");
+    segmentMeta.className = "word-sandwich-timer-meta";
+    segmentMeta.innerHTML = `<span>Letters</span><span id="wordSandwichSegmentClock">20.0s</span>`;
+    const segmentTrack = document.createElement("div");
+    segmentTrack.className = "word-sandwich-track";
+    const segmentFill = document.createElement("div");
+    segmentFill.className = "word-sandwich-fill";
+    segmentFill.id = "wordSandwichSegmentFill";
+    segmentTrack.appendChild(segmentFill);
+    segmentRow.appendChild(segmentMeta);
+    segmentRow.appendChild(segmentTrack);
+    timers.appendChild(segmentRow);
+
+    const gameRow = document.createElement("div");
+    gameRow.className = "word-sandwich-timer-row";
+    const gameMeta = document.createElement("div");
+    gameMeta.className = "word-sandwich-timer-meta";
+    gameMeta.innerHTML = `<span>Round</span><span id="wordSandwichGameClock">60.0s</span>`;
+    const gameTrack = document.createElement("div");
+    gameTrack.className = "word-sandwich-track";
+    const gameFill = document.createElement("div");
+    gameFill.className = "word-sandwich-fill";
+    gameFill.id = "wordSandwichGameFill";
+    gameTrack.appendChild(gameFill);
+    gameRow.appendChild(gameMeta);
+    gameRow.appendChild(gameTrack);
+    timers.appendChild(gameRow);
+
+    card.appendChild(timers);
+  }
+
+  const stats = document.createElement("div");
+  stats.className = "word-sandwich-stats";
+  stats.innerHTML = `
+    <div class="word-sandwich-stat">
+      <span class="word-sandwich-stat-value">${view.myWordCount || 0}</span>
+      <span class="word-sandwich-stat-label">Words</span>
+    </div>
+    <div class="word-sandwich-stat">
+      <span class="word-sandwich-stat-value">${view.mySymmetryBonuses || 0}</span>
+      <span class="word-sandwich-stat-label">Bonuses</span>
+    </div>
+    <div class="word-sandwich-stat">
+      <span class="word-sandwich-stat-value">${view.myScore || 0}</span>
+      <span class="word-sandwich-stat-label">Score</span>
+    </div>
+  `;
+  card.appendChild(stats);
+
+  const form = document.createElement("form");
+  form.className = `word-sandwich-form${view.isFinal ? " is-locked" : ""}`;
+  const input = document.createElement("input");
+  input.className = "word-sandwich-input";
+  input.type = "text";
+  input.placeholder = view.isFinal ? "Round complete" : "Type a word";
+  input.autocomplete = "off";
+  input.spellcheck = false;
+  input.disabled = Boolean(view.isFinal) || pendingAction === "submit_word";
+  const submit = document.createElement("button");
+  submit.className = "primary-btn word-sandwich-submit";
+  submit.type = "submit";
+  submit.disabled = Boolean(view.isFinal) || pendingAction === "submit_word";
+  submit.innerText = pendingAction === "submit_word" ? "Sending" : "Submit";
+  form.appendChild(input);
+  form.appendChild(submit);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const word = input.value.trim();
+    if (!word || view.isFinal || pendingAction === "submit_word") return;
+    sendGameAction("submit_word", { word }, (response) => {
+      if (response?.ok) {
+        input.value = "";
+      }
+    });
+  });
+  card.appendChild(form);
+
+  const columns = document.createElement("div");
+  columns.className = "word-sandwich-columns";
+
+  const myWordsPanel = document.createElement("section");
+  myWordsPanel.className = "word-sandwich-panel";
+  const myWordsTitle = document.createElement("h3");
+  myWordsTitle.className = "word-sandwich-panel-title";
+  myWordsTitle.innerText = "Your latest words";
+  myWordsPanel.appendChild(myWordsTitle);
+  const myWordsList = document.createElement("ol");
+  myWordsList.className = "word-sandwich-word-list";
+  if ((view.myWords || []).length === 0) {
+    const empty = document.createElement("li");
+    empty.className = "word-sandwich-word-item";
+    empty.innerHTML = `<span class="word-sandwich-word-value">No words yet</span><span class="word-sandwich-word-badge">Start typing</span>`;
+    myWordsList.appendChild(empty);
+  } else {
+    (view.myWords || []).forEach((entry) => {
+      const item = document.createElement("li");
+      item.className = `word-sandwich-word-item${entry.isSymmetric ? " is-bonus" : ""}`;
+      item.innerHTML = `
+        <span class="word-sandwich-word-value">${entry.value}</span>
+        <span class="word-sandwich-word-badge">${entry.isSymmetric ? "Symmetry bonus" : entry.combo.toUpperCase()}</span>
+      `;
+      myWordsList.appendChild(item);
+    });
+  }
+  myWordsPanel.appendChild(myWordsList);
+  columns.appendChild(myWordsPanel);
+
+  const boardPanel = document.createElement("section");
+  boardPanel.className = "word-sandwich-panel";
+  const boardTitle = document.createElement("h3");
+  boardTitle.className = "word-sandwich-panel-title";
+  boardTitle.innerText = "Leaderboard";
+  boardPanel.appendChild(boardTitle);
+  const board = document.createElement("ol");
+  board.className = "word-sandwich-board";
+  (view.leaderboard || []).forEach((entry) => {
+    const row = document.createElement("li");
+    row.className = `word-sandwich-row${entry.id === socket.id ? " is-me" : ""}`;
+    row.dataset.playerId = entry.id;
+
+    const rank = document.createElement("span");
+    rank.className = "word-sandwich-rank";
+    rank.innerText = `${entry.rank}.`;
+
+    const player = document.createElement("div");
+    player.className = "word-sandwich-player";
     if (entry.character) {
       const avatar = document.createElement("img");
       avatar.src = characterUrl(entry.character);
       avatar.alt = entry.label;
-      avatar.className = "leaderboard-character-icon";
-      item.appendChild(avatar);
+      player.appendChild(avatar);
+    }
+    const playerName = document.createElement("span");
+    playerName.className = "word-sandwich-player-name";
+    playerName.innerText = entry.label;
+    player.appendChild(playerName);
+
+    const meta = document.createElement("div");
+    meta.className = "word-sandwich-player-meta";
+    const count = document.createElement("span");
+    count.className = "word-sandwich-count";
+    count.innerText = `${entry.wordCount} word${entry.wordCount === 1 ? "" : "s"}`;
+    meta.appendChild(count);
+    if (entry.symmetryBonuses > 0) {
+      const bonus = document.createElement("span");
+      bonus.className = "word-sandwich-bonus";
+      bonus.innerText = `+${entry.symmetryBonuses} bonus`;
+      meta.appendChild(bonus);
     }
 
-    const nameEl = document.createElement("span");
-    nameEl.className = "leaderboard-name";
-    nameEl.innerText = entry.label;
+    row.appendChild(rank);
+    row.appendChild(player);
+    row.appendChild(meta);
+    board.appendChild(row);
+  });
+  boardPanel.appendChild(board);
+  columns.appendChild(boardPanel);
+  card.appendChild(columns);
 
-    const valueEl = document.createElement("span");
-    valueEl.className = "leaderboard-score";
-    valueEl.innerText = entry.value || "";
+  content.appendChild(card);
 
-    item.appendChild(nameEl);
-    item.appendChild(valueEl);
-    list.appendChild(item);
+  animateWordSandwichBoard(board, view.leaderboard || []);
+
+  stopCountdownTimer();
+  if (!view.isFinal && view.segmentEndsAt && view.gameEndsAt) {
+    const segmentFill = document.getElementById("wordSandwichSegmentFill");
+    const gameFill = document.getElementById("wordSandwichGameFill");
+    const segmentClock = document.getElementById("wordSandwichSegmentClock");
+    const gameClock = document.getElementById("wordSandwichGameClock");
+    const segmentStart = Math.max(view.segmentEndsAt - 20000, Date.now() - 1);
+    const gameStart = Math.max(view.gameEndsAt - 60000, Date.now() - 1);
+
+    const updateClocks = () => {
+      const now = Date.now();
+      const segmentRemaining = Math.max(0, view.segmentEndsAt - now);
+      const gameRemaining = Math.max(0, view.gameEndsAt - now);
+      const segmentRatio = Math.max(0, Math.min(1, segmentRemaining / Math.max(1, view.segmentEndsAt - segmentStart)));
+      const gameRatio = Math.max(0, Math.min(1, gameRemaining / Math.max(1, view.gameEndsAt - gameStart)));
+
+      if (segmentFill) {
+        segmentFill.style.width = `${segmentRatio * 100}%`;
+        segmentFill.style.background = segmentRatio <= 0.25 ? "#e74c3c" : segmentRatio <= 0.5 ? "#f1c40f" : "linear-gradient(90deg, #2ad1ff, #238dff)";
+      }
+      if (gameFill) {
+        gameFill.style.width = `${gameRatio * 100}%`;
+        gameFill.style.background = gameRatio <= 0.25 ? "#e74c3c" : gameRatio <= 0.5 ? "#f1c40f" : "linear-gradient(90deg, #2ad1ff, #238dff)";
+      }
+      if (segmentClock) segmentClock.innerText = `${(segmentRemaining / 1000).toFixed(1)}s`;
+      if (gameClock) gameClock.innerText = `${(gameRemaining / 1000).toFixed(1)}s`;
+      if (gameRemaining <= 0) stopCountdownTimer();
+    };
+
+    updateClocks();
+    countdownTimerId = window.setInterval(updateClocks, 100);
+  }
+}
+
+// ── Kahoot-style answer grid renderer ─────────────────────────────
+function renderKahootAnswerGrid(container, view) {
+  const heroCard = document.getElementById("heroCard");
+  const mainShell = document.getElementById("mainShell");
+
+  // Switch to full-screen trivia layout
+  mainShell.className = "trivia-shell";
+  heroCard.style.display = "none";
+
+  const isReveal = Boolean(view.isReveal);
+  const correctColor = view.correctColor;
+  const myAnswer = view.myAnswerColor;
+  const hasAnswered = Boolean(myAnswer);
+  const latestResult = view.latestResult;
+
+  // ── Question bar ──
+  const bar = document.createElement("div");
+  bar.className = "trivia-question-bar";
+
+  // Difficulty badge
+  if (view.difficultyLabel) {
+    const diff = document.createElement("p");
+    diff.className = "difficulty-badge";
+    diff.setAttribute("data-difficulty", view.difficulty || 1);
+    diff.innerText = view.difficultyLabel;
+    bar.appendChild(diff);
+  }
+
+  const kicker = document.createElement("p");
+  kicker.className = "trivia-question-kicker";
+  kicker.innerText = view.title || `Question ${view.questionNumber}`;
+  bar.appendChild(kicker);
+
+  const questionText = document.createElement("p");
+  questionText.className = "trivia-question-text";
+  questionText.innerText = view.details || "";
+  bar.appendChild(questionText);
+
+  // Timer + status row
+  const metaRow = document.createElement("div");
+  metaRow.className = "trivia-meta-row";
+
+  const timerTrack = document.createElement("div");
+  timerTrack.className = "trivia-timer-track";
+  const timerFill = document.createElement("div");
+  timerFill.className = "trivia-timer-fill";
+  timerFill.id = "kahootTimerFill";
+  timerTrack.appendChild(timerFill);
+
+  const statusChip = document.createElement("span");
+  statusChip.className = "trivia-status-chip";
+  statusChip.id = "kahootStatusChip";
+
+  if (isReveal) {
+    statusChip.innerText = "Reveal!";
+    timerFill.style.width = "0%";
+    timerFill.style.background = "#e74c3c";
+  } else {
+    statusChip.innerText = hasAnswered ? "Locked in!" : "Choose…";
+  }
+
+  metaRow.appendChild(timerTrack);
+  metaRow.appendChild(statusChip);
+  bar.appendChild(metaRow);
+  container.appendChild(bar);
+
+  // ── Result banner (if reveal and I had answered) ──
+  if (isReveal && latestResult && !latestResult.timedOut) {
+    const banner = document.createElement("div");
+    const wasCorrect = latestResult.wasCorrect;
+    banner.className = `trivia-result-banner ${wasCorrect ? "correct" : "wrong"}`;
+
+    const emoji = document.createElement("div");
+    emoji.className = "trivia-result-emoji";
+    emoji.innerText = wasCorrect ? "✅" : "❌";
+
+    const title = document.createElement("div");
+    title.className = "trivia-result-title";
+    title.innerText = wasCorrect
+      ? `+${latestResult.pointsEarned} pts`
+      : "Wrong!";
+
+    const sub = document.createElement("p");
+    sub.className = "trivia-result-sub";
+    sub.innerText = wasCorrect
+      ? `Speed bonus included! Total: ${latestResult.totalPoints} pts`
+      : `Correct was ${correctColor ? correctColor.toUpperCase() : "?"}. Total: ${latestResult.totalPoints} pts`;
+
+    banner.appendChild(emoji);
+    banner.appendChild(title);
+    banner.appendChild(sub);
+    container.appendChild(banner);
+  } else if (isReveal && latestResult?.timedOut) {
+    const banner = document.createElement("div");
+    banner.className = "trivia-result-banner timed-out";
+    const emoji = document.createElement("div"); emoji.className = "trivia-result-emoji"; emoji.innerText = "⏱️";
+    const title = document.createElement("div"); title.className = "trivia-result-title"; title.innerText = "Time's up!";
+    const sub = document.createElement("p"); sub.className = "trivia-result-sub";
+    sub.innerText = `Correct was ${correctColor ? correctColor.toUpperCase() : "?"}. Total: ${latestResult.totalPoints} pts`;
+    banner.appendChild(emoji); banner.appendChild(title); banner.appendChild(sub);
+    container.appendChild(banner);
+  } else if (!isReveal && hasAnswered) {
+    const chip = document.createElement("div");
+    chip.className = "waiting-chip";
+    chip.innerHTML = `<span>⏳</span> Waiting for others…`;
+    chip.style.margin = "4px 8px 0";
+    container.appendChild(chip);
+  }
+
+  // ── Color button grid ──
+  const answersArea = document.createElement("div");
+  answersArea.className = "trivia-answers-area";
+
+  const grid = document.createElement("div");
+  grid.className = "kahoot-grid";
+
+  (view.options || []).forEach((option) => {
+    const btn = document.createElement("button");
+    const colorClass = option.id;
+    let classes = `kahoot-btn ${colorClass}`;
+
+    if (isReveal) {
+      if (option.isCorrect) {
+        classes += " is-correct";
+      } else {
+        classes += " is-wrong";
+      }
+    } else if (myAnswer === option.id) {
+      classes += " is-my-answer";
+    }
+
+    btn.className = classes;
+    btn.disabled = hasAnswered || isReveal;
+
+    if (!hasAnswered && !isReveal) {
+      btn.onclick = () => sendGameAction("submit_answer", { answerColor: option.id });
+    }
+
+    grid.appendChild(btn);
   });
 
-  board.appendChild(list);
-  content.appendChild(board);
+  answersArea.appendChild(grid);
+  container.appendChild(answersArea);
+
+  // ── Start countdown timer ──
+  if (!isReveal && view.questionEndsAt) {
+    stopCountdownTimer();
+    const fill = document.getElementById("kahootTimerFill");
+    const chip = document.getElementById("kahootStatusChip");
+    const totalMs = view.questionDurationMs || 6000;
+
+    const updateTimer = () => {
+      const remaining = Math.max(0, view.questionEndsAt - Date.now());
+      const ratio = remaining / totalMs;
+      if (fill) {
+        fill.style.width = `${ratio * 100}%`;
+        fill.style.background = ratio <= 0.25 ? "#e74c3c" : ratio <= 0.5 ? "#f1c40f" : "#27c2ff";
+      }
+      if (chip && !hasAnswered) {
+        chip.innerText = `${(remaining / 1000).toFixed(1)}s`;
+      }
+      if (remaining <= 0) stopCountdownTimer();
+    };
+
+    updateTimer();
+    countdownTimerId = window.setInterval(updateTimer, 100);
+  }
+}
+
+// ── Other renderers ────────────────────────────────────────────────
+function renderPrivateCard(content, privateState) {
+  if (!privateState?.gameId || !privateState?.title) return;
+  const card = createCard("mobile-card section-card");
+  const h = document.createElement("h2"); h.className = "section-title"; h.innerText = privateState.title;
+  const b = document.createElement("p"); b.className = "question-text"; b.innerText = privateState.message || "";
+  card.appendChild(h); card.appendChild(b);
+  if (privateState.footer) {
+    const f = document.createElement("p"); f.className = "section-copy"; f.style.marginTop = "12px"; f.innerText = privateState.footer;
+    card.appendChild(f);
+  }
+  content.appendChild(card);
+}
+
+function renderGameVote(content, view, detailsEl) {
+  detailsEl.innerText = votedGameId ? "Your vote is locked in." : (view.details || "Choose a minigame.");
+  const grid = document.createElement("div"); grid.className = "vote-grid";
+  (view.options || []).forEach((option) => {
+    const btn = document.createElement("button");
+    btn.className = `vote-card${votedGameId === option.id ? " is-selected" : ""}`;
+    btn.disabled = Boolean(votedGameId);
+    const t = document.createElement("span"); t.className = "vote-card-title"; t.innerText = option.label;
+    const d = document.createElement("span"); d.className = "vote-card-copy";  d.innerText = option.description || "";
+    const m = document.createElement("span"); m.className = "vote-card-meta";  m.innerText = option.meta || "";
+    btn.appendChild(t); btn.appendChild(d); btn.appendChild(m);
+    btn.onclick = () => {
+      socket.emit("vote_game", { code, gameId: option.id }, (response) => {
+        if (!response?.ok) { detailsEl.innerText = response?.error || "Unable to submit vote."; render(latestState, latestPrivateState); return; }
+        votedGameId = option.id;
+        render(latestState, latestPrivateState);
+      });
+    };
+    grid.appendChild(btn);
+  });
+  content.appendChild(grid);
+}
+
+function renderLeaderboard(content, view, privateState) {
+  const board = document.createElement("section");
+  board.className = "mobile-card leaderboard-card";
+  const heading = document.createElement("h2"); heading.className = "section-title"; heading.innerText = view.title || "Standings";
+  board.appendChild(heading);
+
+  const maxScore = view.maxScore || Math.max(...(view.items || []).map(e => e.score || 0), 1);
+
+  const list = document.createElement("ol"); list.className = "leaderboard-list";
+  (view.items || []).forEach((entry, i) => {
+    const item = document.createElement("li");
+    item.className = "leaderboard-row";
+    item.style.display = "block";
+    item.style.padding = "12px 14px";
+
+    // Top row: rank + name + character + score
+    const topRow = document.createElement("div");
+    topRow.style.cssText = "display:flex;align-items:center;gap:10px;margin-bottom:6px";
+
+    const rank = document.createElement("span");
+    rank.style.cssText = "font-size:16px;font-weight:900;color:#92e3ff;min-width:22px";
+    rank.innerText = `${entry.rank || i+1}.`;
+
+    if (entry.character) {
+      const av = document.createElement("img");
+      av.src = characterUrl(entry.character); av.alt = entry.label;
+      av.style.cssText = "width:30px;height:30px;object-fit:contain;image-rendering:pixelated;flex-shrink:0";
+      topRow.appendChild(rank); topRow.appendChild(av);
+    } else {
+      topRow.appendChild(rank);
+    }
+
+    const namEl = document.createElement("span");
+    namEl.className = "leaderboard-name"; namEl.innerText = entry.label;
+    namEl.style.flex = "1";
+
+    const valEl = document.createElement("span");
+    valEl.className = "leaderboard-score"; valEl.innerText = entry.value || "";
+
+    topRow.appendChild(namEl); topRow.appendChild(valEl);
+
+    // Bar
+    const barTrack = document.createElement("div");
+    barTrack.style.cssText = "height:8px;background:rgba(255,255,255,0.1);border-radius:999px;overflow:hidden";
+    const barFill = document.createElement("div");
+    const ratio = entry.barRatio != null ? entry.barRatio : (entry.score || 0) / maxScore;
+    barFill.style.cssText = `height:100%;border-radius:999px;background:${i===0?"#27c2ff":i===1?"#a78bfa":i===2?"#f59e0b":"#4b7fa8"};width:${Math.round(ratio*100)}%;transition:width 600ms ease`;
+    barTrack.appendChild(barFill);
+
+    item.appendChild(topRow); item.appendChild(barTrack);
+    list.appendChild(item);
+  });
+  board.appendChild(list); content.appendChild(board);
 }
 
 function renderImposterRound(content, view, privateState) {
   renderPrivateCard(content, privateState);
   content.appendChild(createPhaseMessage("Hint round", view.details || "Give one spoken hint."));
-
   const actionCard = createCard("mobile-card section-card");
-  const actionTitle = document.createElement("h2");
-  actionTitle.className = "section-title";
-  actionTitle.innerText = "Actions";
+  const actionTitle = document.createElement("h2"); actionTitle.className = "section-title"; actionTitle.innerText = "Actions";
   actionCard.appendChild(actionTitle);
-
   if (view.canAdvanceTurn) {
-    const nextTurnBtn = document.createElement("button");
-    nextTurnBtn.className = "primary-btn";
-    nextTurnBtn.style.marginTop = "16px";
-    nextTurnBtn.innerText = "Pass Turn";
-    nextTurnBtn.onclick = () => sendGameAction("advance_turn", {});
-    actionCard.appendChild(nextTurnBtn);
+    const b = document.createElement("button"); b.className = "primary-btn"; b.style.marginTop = "16px"; b.innerText = "Pass Turn";
+    b.onclick = () => sendGameAction("advance_turn", {});
+    actionCard.appendChild(b);
   }
-
   if (view.canStartVote) {
-    const voteBtn = document.createElement("button");
-    voteBtn.className = "primary-btn";
-    voteBtn.style.marginTop = "16px";
-    voteBtn.innerText = "Start Voting";
-    voteBtn.onclick = () => sendGameAction("start_vote", {});
-    actionCard.appendChild(voteBtn);
+    const b = document.createElement("button"); b.className = "primary-btn"; b.style.marginTop = "16px"; b.innerText = "Start Voting";
+    b.onclick = () => sendGameAction("start_vote", {});
+    actionCard.appendChild(b);
   }
-
   content.appendChild(actionCard);
-
-  const board = document.createElement("section");
-  board.className = "mobile-card leaderboard-card";
-
-  const heading = document.createElement("h2");
-  heading.className = "section-title";
-  heading.innerText = "Players";
+  const board = document.createElement("section"); board.className = "mobile-card leaderboard-card";
+  const heading = document.createElement("h2"); heading.className = "section-title"; heading.innerText = "Players";
   board.appendChild(heading);
-
-  const list = document.createElement("ol");
-  list.className = "leaderboard-list";
-
+  const list = document.createElement("ol"); list.className = "leaderboard-list";
   (view.players || []).forEach((player) => {
-    const item = document.createElement("li");
-    item.className = "leaderboard-row";
-
-    if (player.character) {
-      const avatar = document.createElement("img");
-      avatar.src = characterUrl(player.character);
-      avatar.alt = player.name;
-      avatar.className = "leaderboard-character-icon";
-      item.appendChild(avatar);
-    }
-
-    const nameEl = document.createElement("span");
-    nameEl.className = "leaderboard-name";
-    nameEl.innerText = player.name;
-
-    const valueEl = document.createElement("span");
-    valueEl.className = "leaderboard-score";
-    valueEl.innerText = player.id === view.currentSpeakerId ? "Speaking" : (player.isEliminated ? "Out" : "Ready");
-
-    item.appendChild(nameEl);
-    item.appendChild(valueEl);
-    list.appendChild(item);
+    const item = document.createElement("li"); item.className = "leaderboard-row";
+    if (player.character) { const av = document.createElement("img"); av.src = characterUrl(player.character); av.alt = player.name; av.className = "leaderboard-character-icon"; item.appendChild(av); }
+    const n = document.createElement("span"); n.className = "leaderboard-name"; n.innerText = player.name;
+    const v = document.createElement("span"); v.className = "leaderboard-score"; v.innerText = player.id === view.currentSpeakerId ? "Speaking" : (player.isEliminated ? "Out" : "Ready");
+    item.appendChild(n); item.appendChild(v); list.appendChild(item);
   });
-
-  board.appendChild(list);
-  content.appendChild(board);
+  board.appendChild(list); content.appendChild(board);
 }
 
-// Among Us-style player vote renderer
 function renderPlayerVote(content, view, privateState) {
   renderPrivateCard(content, privateState);
-
   const card = createCard("mobile-card section-card");
-  const title = document.createElement("h2");
-  title.className = "section-title";
-  title.innerText = view.title || "Vote";
+  const title = document.createElement("h2"); title.className = "section-title"; title.innerText = view.title || "Vote";
   card.appendChild(title);
-
-  if (view.details) {
-    const sub = document.createElement("p");
-    sub.className = "section-copy";
-    sub.style.marginBottom = "16px";
-    sub.innerText = view.details;
-    card.appendChild(sub);
-  }
-
-  const grid = document.createElement("div");
-  grid.className = "player-vote-grid";
-
+  if (view.details) { const sub = document.createElement("p"); sub.className = "section-copy"; sub.style.marginBottom = "16px"; sub.innerText = view.details; card.appendChild(sub); }
+  const grid = document.createElement("div"); grid.className = "player-vote-grid";
   (view.players || []).forEach((player) => {
     const isVotedFor = view.myVoteTargetId === player.id;
     const cell = document.createElement("div");
     cell.className = "player-vote-cell" + (isVotedFor ? " is-my-vote" : "") + (player.disabled && !isVotedFor ? " is-locked" : "");
-
-    // Character portrait
-    const portrait = document.createElement("div");
-    portrait.className = "player-vote-portrait";
-    if (player.character) {
-      const img = document.createElement("img");
-      img.src = characterUrl(player.character);
-      img.alt = player.label;
-      portrait.appendChild(img);
-    }
-
-    // Voter pips (characters who voted for this player)
-    if (player.voterCharacters && player.voterCharacters.length > 0) {
-      const pips = buildVoterPips(player.voterCharacters);
-      if (pips) portrait.appendChild(pips);
-    }
-
-    // Player name
-    const label = document.createElement("span");
-    label.className = "player-vote-name";
-    label.innerText = player.label;
-
-    // Vote badge if I voted for them
-    if (isVotedFor) {
-      const badge = document.createElement("span");
-      badge.className = "player-vote-my-badge";
-      badge.innerText = "Your vote";
-      cell.appendChild(portrait);
-      cell.appendChild(label);
-      cell.appendChild(badge);
-    } else {
-      cell.appendChild(portrait);
-      cell.appendChild(label);
-    }
-
-    if (!player.disabled) {
-      cell.onclick = () => sendGameAction("cast_vote", { targetPlayerId: player.id });
-      cell.style.cursor = "pointer";
-    }
-
+    const portrait = document.createElement("div"); portrait.className = "player-vote-portrait";
+    if (player.character) { const img = document.createElement("img"); img.src = characterUrl(player.character); img.alt = player.label; portrait.appendChild(img); }
+    if (player.voterCharacters?.length > 0) { const pips = buildVoterPips(player.voterCharacters); if (pips) portrait.appendChild(pips); }
+    const label = document.createElement("span"); label.className = "player-vote-name"; label.innerText = player.label;
+    if (isVotedFor) { const badge = document.createElement("span"); badge.className = "player-vote-my-badge"; badge.innerText = "Your vote"; cell.appendChild(portrait); cell.appendChild(label); cell.appendChild(badge); }
+    else { cell.appendChild(portrait); cell.appendChild(label); }
+    if (!player.disabled) { cell.onclick = () => sendGameAction("cast_vote", { targetPlayerId: player.id }); cell.style.cursor = "pointer"; }
     grid.appendChild(cell);
   });
-
-  card.appendChild(grid);
-  content.appendChild(card);
+  card.appendChild(grid); content.appendChild(card);
 }
 
+// ── Renderers map ──────────────────────────────────────────────────
 const renderers = {
   message(content, view, privateState) {
+    // Restore normal layout when leaving trivia
+    const heroCard = document.getElementById("heroCard");
+    const mainShell = document.getElementById("mainShell");
+    mainShell.className = "mobile-shell controller-shell";
+    heroCard.style.display = "";
     renderPrivateCard(content, privateState);
-    content.appendChild(createPhaseMessage(view.title || "Controller ready", view.details || "Look at the TV for the next round."));
+    content.appendChild(createPhaseMessage(view.title || "Controller ready", view.details || "Look at the TV."));
   },
   game_vote(content, view, privateState, detailsEl) {
+    const heroCard = document.getElementById("heroCard");
+    const mainShell = document.getElementById("mainShell");
+    mainShell.className = "mobile-shell controller-shell";
+    heroCard.style.display = "";
     renderPrivateCard(content, privateState);
     renderGameVote(content, view, detailsEl);
   },
   answer_grid(content, view, privateState) {
-    renderPrivateCard(content, privateState);
-    renderAnswerGrid(content, view);
+    // Full-screen Kahoot mode — hero card hidden inside
+    renderKahootAnswerGrid(content, view);
+    if (view.latestResult && view.isReveal) {
+      showToast(buildTriviaToast(view.latestResult));
+    }
   },
   leaderboard(content, view, privateState) {
+    const heroCard = document.getElementById("heroCard");
+    const mainShell = document.getElementById("mainShell");
+    mainShell.className = "mobile-shell controller-shell";
+    heroCard.style.display = "";
     renderPrivateCard(content, privateState);
-    renderLeaderboard(content, view);
+    renderLeaderboard(content, view, privateState);
   },
   imposter_round(content, view, privateState) {
+    const heroCard = document.getElementById("heroCard");
+    const mainShell = document.getElementById("mainShell");
+    mainShell.className = "mobile-shell controller-shell";
+    heroCard.style.display = "";
     renderImposterRound(content, view, privateState);
   },
   player_vote(content, view, privateState) {
+    const heroCard = document.getElementById("heroCard");
+    const mainShell = document.getElementById("mainShell");
+    mainShell.className = "mobile-shell controller-shell";
+    heroCard.style.display = "";
     renderPlayerVote(content, view, privateState);
+  },
+  word_sandwiches(content, view, privateState, detailsEl) {
+    const heroCard = document.getElementById("heroCard");
+    const mainShell = document.getElementById("mainShell");
+    mainShell.className = "mobile-shell controller-shell";
+    heroCard.style.display = "";
+    renderWordSandwiches(content, view, detailsEl);
   }
 };
 
+// ── Main render ───────────────────────────────────────────────────
 function render(state, privateState = {}) {
-  const content = document.getElementById("content");
-  const status = document.getElementById("status");
-  const details = document.getElementById("details");
-  const view = state?.controllerView || {
-    layout: "message",
-    title: "Look at the TV",
-    details: "Waiting for the next prompt."
-  };
+  const content  = document.getElementById("content");
+  const status   = document.getElementById("status");
+  const details  = document.getElementById("details");
+  const view = state?.controllerView || { layout: "message", title: "Look at the TV", details: "Waiting for the next prompt." };
+
   document.body.setAttribute("data-phase", state?.phase || "waiting");
-  status.innerText = view.title || "Look at the TV";
+  status.innerText  = view.title   || "Look at the TV";
   details.innerText = view.details || "Waiting for the next prompt.";
 
-  // Sync my character from player list
+  // Sync my character
   if (state?.players) {
-    const myEntry = state.players.find((p) => p.clientId === clientId || p.name === name);
-    if (!myEntry) {
-      // Try matching by socket id via playerCharacters map
-    }
-    // playerCharacters map is keyed by socket id which we don't store client-side,
-    // but players array now includes character, so look up by name
-    const me = state.players.find((p) => {
-      const storedName = localStorage.getItem("name");
-      return storedName && p.name && p.name.toLowerCase() === storedName.toLowerCase();
-    });
-    if (me && me.character) setMyCharacter(me.character);
+    const storedName = localStorage.getItem("name");
+    const me = state.players.find((p) => storedName && p.name && p.name.toLowerCase() === storedName.toLowerCase());
+    if (me?.character) setMyCharacter(me.character);
   }
 
   const stage = document.createElement("div");
@@ -634,23 +1324,21 @@ function render(state, privateState = {}) {
   renderer(stage, view, privateState, details);
 
   const nextQuestionKey = view.layout === "answer_grid"
-    ? `answer_grid:${view.questionNumber || view.title || ""}`
+    ? `answer_grid:${view.questionNumber || view.title || ""}:${view.isReveal ? "reveal" : "active"}`
     : view.layout;
 
   if (!currentStage) {
     content.innerHTML = "";
     content.appendChild(stage);
     currentStage = stage;
-  } else if (nextQuestionKey !== activeQuestionKey && view.layout === "answer_grid") {
-    const previousStage = currentStage;
-    previousStage.classList.remove("is-entering");
-    previousStage.classList.add("is-leaving");
+  } else if (nextQuestionKey !== activeQuestionKey && view.layout === "answer_grid" && !view.isReveal) {
+    const prev = currentStage;
+    prev.classList.remove("is-entering");
+    prev.classList.add("is-leaving");
     stage.classList.add("is-entering");
     content.appendChild(stage);
     currentStage = stage;
-    window.setTimeout(() => {
-      if (previousStage.isConnected) previousStage.remove();
-    }, 220);
+    window.setTimeout(() => { if (prev.isConnected) prev.remove(); }, 220);
   } else {
     content.innerHTML = "";
     content.appendChild(stage);
@@ -658,41 +1346,30 @@ function render(state, privateState = {}) {
   }
   activeQuestionKey = nextQuestionKey;
 
-  if (view.layout === "answer_grid") {
-    attachCountdown(details, view.questionEndsAt);
-  } else {
+  // Only attach countdown from the MAIN render for non-kahoot layouts
+  if (view.layout !== "answer_grid") {
     stopCountdownTimer();
   }
 
-  if (view.latestResult) {
+  if (view.latestResult && view.layout !== "answer_grid") {
     showToast(buildTriviaToast(view.latestResult));
   }
 }
 
+// ── Socket events ─────────────────────────────────────────────────
 socket.on("connect", () => {
   socket.emit("join_room", { code, name, clientId });
   document.getElementById("status").innerText = "Connected";
 });
 
 socket.on("player_identity", (identity) => {
-  if (identity?.clientId) {
-    clientId = identity.clientId;
-    localStorage.setItem("clientId", identity.clientId);
-  }
-
-  if (identity?.name) {
-    localStorage.setItem("name", identity.name);
-    document.getElementById("playerChip").innerText = `Player: ${identity.name}`;
-  }
+  if (identity?.clientId) { clientId = identity.clientId; localStorage.setItem("clientId", identity.clientId); }
+  if (identity?.name) { localStorage.setItem("name", identity.name); document.getElementById("playerChip").innerText = `Player: ${identity.name}`; }
 });
 
 socket.on("game_state", (state) => {
   latestState = state;
-
-  if (state?.phase !== "game_select") {
-    votedGameId = null;
-  }
-
+  if (state?.phase !== "game_select") votedGameId = null;
   render(latestState, latestPrivateState);
 });
 
@@ -708,7 +1385,6 @@ socket.on("error_message", (msg) => {
     window.location.href = `/name.html?code=${encodeURIComponent(code)}`;
     return;
   }
-
   window.location.href = "/";
 });
 </script>

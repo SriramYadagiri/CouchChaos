@@ -3,6 +3,7 @@ sub init()
     m.miniGameGrid = m.top.findNode("miniGameGrid")
     m.timerTrack = m.top.findNode("timerTrack")
     m.timerFill = m.top.findNode("timerFill")
+    m.wordSandwichLetters = m.top.findNode("wordSandwichLetters")
     m.triviaTimer = m.top.findNode("triviaTimer")
     m.returnVoteButton = m.top.findNode("returnVoteButton")
     m.pollTask = CreateObject("roSGNode", "PlayerPollTask")
@@ -16,8 +17,6 @@ sub init()
     m.triviaQuestionEndsAt = invalid
     m.triviaQuestionDurationMs = 0
     m.triviaCountdown = invalid
-    m.serverBase = "http://192.168.86.69:3000"
-
     m.top.observeField("roomCode", "onRoomCodeSet")
     m.pollTask.observeField("roomState", "onRoomUpdate")
     m.startVoteTask.observeField("roomState", "onReturnVoteStarted")
@@ -55,16 +54,13 @@ sub onRoomUpdate()
     phase = ""
     if room.doesExist("phase") then phase = room.phase
     m.currentPhase = phase
-
-    ' Build a map of gameId -> array of voter character URLs
-    ' The server sends players[] with character slugs and gameVotes map isn't exposed,
-    ' but the tvView cards now carry voterCharacters arrays (added server-side).
-    ' We'll pass the full room to updateTvView so it can access playerCharacters.
     m.currentRoom = room
 
     if room.doesExist("tvView") and room.tvView <> invalid then
         updateTvView(room.tvView)
     else
+        setTriviaTimerState(invalid, 0)
+        showWordSandwichLetters("", false)
         setGridInteractive(false)
         m.miniGameGrid.content = CreateObject("roSGNode", "ContentNode")
         setChromeText("Vote For The Next Minigame", "Waiting for the next round.", "")
@@ -165,26 +161,213 @@ sub updateTvView(tvView as Object)
 
     if layout = "game_vote" then
         setTriviaTimerState(invalid, 0)
+        showWordSandwichLetters("", false)
         renderCardGrid(tvView, true, 3, 1, [320, 220], [95, 242], "game_vote")
+
     else if layout = "trivia_question" then
         questionEndsAt = invalid
         questionDurationMs = 0
         if tvView.doesExist("questionEndsAt") then questionEndsAt = tvView.questionEndsAt
         if tvView.doesExist("questionDurationMs") then questionDurationMs = tvView.questionDurationMs
         setTriviaTimerState(questionEndsAt, questionDurationMs)
-        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "trivia_option")
+        showWordSandwichLetters("", false)
+
+        ' Build subtitle including answer count
+        subtitle = tvView.subtitle
+        if tvView.doesExist("answerCount") and tvView.doesExist("totalPlayers") then
+            subtitle = subtitle + " · " + tvView.answerCount.ToStr() + "/" + tvView.totalPlayers.ToStr() + " answered"
+        end if
+
+        ' Temporarily override subtitle for rendering
+        patchedView = buildPatchedView(tvView, subtitle)
+        renderCardGrid(patchedView, false, 2, 2, [520, 160], [95, 242], "trivia_option")
+
+    else if layout = "trivia_reveal" then
+        ' Show correct answer overlay — stop timer bar
+        setTriviaTimerState(invalid, 0)
+        showWordSandwichLetters("", false)
+
+        subtitle = tvView.subtitle
+        if tvView.doesExist("answerCount") and tvView.doesExist("totalPlayers") then
+            subtitle = subtitle + " · " + tvView.answerCount.ToStr() + "/" + tvView.totalPlayers.ToStr() + " answered"
+        end if
+        if tvView.doesExist("correctColor") and tvView.correctColor <> invalid then
+            subtitle = subtitle + " · Correct: " + UCase(tvView.correctColor)
+        end if
+
+        patchedView = buildPatchedView(tvView, subtitle)
+        renderCardGrid(patchedView, false, 2, 2, [520, 160], [95, 242], "trivia_reveal")
+
+    else if layout = "trivia_leaderboard" then
+        setTriviaTimerState(invalid, 0)
+        showWordSandwichLetters("", false)
+        ' Use a tall single-column leaderboard bar layout
+        renderLeaderboardBars(tvView)
+
+    else if layout = "word_sandwiches" then
+        setTriviaTimerState(invalid, 0)
+        renderWordSandwichesBoard(tvView)
+
+    else if layout = "word_sandwiches_results" then
+        setTriviaTimerState(invalid, 0)
+        renderWordSandwichesBoard(tvView)
+
     else if layout = "leaderboard" then
         setTriviaTimerState(invalid, 0)
+        showWordSandwichLetters("", false)
         renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "leaderboard")
+
     else if layout = "player_grid" then
         setTriviaTimerState(invalid, 0)
+        showWordSandwichLetters("", false)
         renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "leaderboard")
+
     else
         setTriviaTimerState(invalid, 0)
+        showWordSandwichLetters("", false)
         setGridInteractive(false)
         setChromeText(tvView.title, tvView.subtitle, tvView.description)
         updateGridIfNeeded(CreateObject("roSGNode", "ContentNode"), "message|" + tvView.title + "|" + tvView.subtitle + "|" + tvView.description)
     end if
+end sub
+
+' Build a lightweight patched view AA with a replacement subtitle
+function buildPatchedView(tvView as Object, newSubtitle as String) as Object
+    patched = {}
+    patched.layout = tvView.layout
+    patched.title = tvView.title
+    patched.subtitle = newSubtitle
+    if tvView.doesExist("description") then patched.description = tvView.description else patched.description = ""
+    if tvView.doesExist("cards") then patched.cards = tvView.cards else patched.cards = []
+    if tvView.doesExist("questionEndsAt") then patched.questionEndsAt = tvView.questionEndsAt
+    if tvView.doesExist("questionDurationMs") then patched.questionDurationMs = tvView.questionDurationMs
+    return patched
+end function
+
+' Render horizontal bar leaderboard for end-of-game results
+sub renderLeaderboardBars(tvView as Object)
+    setGridInteractive(false)
+    showWordSandwichLetters("", false)
+
+    ' Determine max score for scaling bars
+    maxScore = 1
+    if tvView.doesExist("maxScore") and tvView.maxScore > 0 then
+        maxScore = tvView.maxScore
+    end if
+
+    ' Build content nodes — each card gets a barRatio field
+    content = CreateObject("roSGNode", "ContentNode")
+    signature = "trivia_leaderboard|"
+
+    cards = []
+    if tvView.doesExist("cards") and tvView.cards <> invalid then
+        cards = tvView.cards
+    end if
+
+    for each card in cards
+        item = CreateObject("roSGNode", "MiniGameContentNode")
+        item.cardkind = "leaderboard_bar"
+        item.title = ""
+        if card.doesExist("title") then item.title = card.title
+        item.footertext = ""
+        if card.doesExist("footer") then item.footertext = card.footer
+
+        ' Pack score and bar ratio into the description field as "score|ratio"
+        barRatio = 0
+        if card.doesExist("barRatio") then barRatio = card.barRatio
+        score = 0
+        if card.doesExist("score") then score = card.score
+        item.description = score.ToStr() + "|" + barRatio.ToStr()
+
+        ' Character info
+        if card.doesExist("character") and card.character <> invalid then
+            item.bodytext = card.character
+        else
+            item.bodytext = ""
+        end if
+
+        ' Rank
+        rank = 0
+        if card.doesExist("rank") then rank = card.rank
+        item.votecount = rank.ToStr()
+
+        item.cardwidth = 1060
+        item.cardheight = 80
+
+        signature = signature + item.title + "|" + item.description + "|"
+        content.appendChild(item)
+    end for
+
+    ' Reconfigure grid for single-column bar layout
+    configureGrid(1, cards.count(), [1060, 80], [90, 210])
+    setChromeText(tvView.title, tvView.subtitle, "")
+    updateGridIfNeeded(content, signature)
+end sub
+
+sub renderWordSandwichesBoard(tvView as Object)
+    setGridInteractive(false)
+
+    letters = ""
+    if tvView.doesExist("letters") and tvView.letters <> invalid then
+        letters = tvView.letters
+    end if
+    showWordSandwichLetters(letters, true)
+
+    cards = []
+    if tvView.doesExist("cards") and tvView.cards <> invalid then
+        cards = tvView.cards
+    end if
+
+    maxScore = 1
+    if tvView.doesExist("maxScore") and tvView.maxScore > 0 then
+        maxScore = tvView.maxScore
+    end if
+
+    rowCount = cards.count()
+    if rowCount <= 0 then rowCount = 1
+    rowHeight = Int(410 / rowCount)
+    if rowHeight > 72 then rowHeight = 72
+    if rowHeight < 46 then rowHeight = 46
+
+    content = CreateObject("roSGNode", "ContentNode")
+    signature = "word_sandwiches|" + letters + "|"
+
+    for each card in cards
+        item = CreateObject("roSGNode", "MiniGameContentNode")
+        item.cardkind = "leaderboard_bar"
+        item.title = ""
+        if card.doesExist("title") then item.title = card.title
+        item.footertext = ""
+        if card.doesExist("footer") then item.footertext = card.footer
+
+        barRatio = 0
+        if card.doesExist("barRatio") then barRatio = card.barRatio
+        score = 0
+        if card.doesExist("score") then score = card.score
+        item.description = score.ToStr() + "|" + barRatio.ToStr()
+
+        if card.doesExist("character") and card.character <> invalid then
+            item.bodytext = card.character
+        else
+            item.bodytext = ""
+        end if
+
+        rank = 0
+        if card.doesExist("rank") then rank = card.rank
+        item.votecount = rank.ToStr()
+
+        item.cardwidth = 1060
+        item.cardheight = rowHeight
+
+        signature = signature + item.title + "|" + item.footertext + "|" + item.description + "|"
+        content.appendChild(item)
+    end for
+
+    gridRows = cards.count()
+    if gridRows < 1 then gridRows = 1
+    configureGrid(1, gridRows, [1060, rowHeight], [90, 262])
+    setChromeText(tvView.title, tvView.subtitle, tvView.description)
+    updateGridIfNeeded(content, signature)
 end sub
 
 sub setTriviaTimerState(questionEndsAt as Dynamic, questionDurationMs as Integer)
@@ -215,6 +398,16 @@ sub setTriviaTimerState(questionEndsAt as Dynamic, questionDurationMs as Integer
 
     updateTriviaTimerBar()
     m.triviaTimer.control = "start"
+end sub
+
+sub showWordSandwichLetters(text as String, isVisible as Boolean)
+    if m.wordSandwichLetters = invalid then return
+    m.wordSandwichLetters.visible = isVisible
+    if isVisible then
+        m.wordSandwichLetters.text = text
+    else
+        m.wordSandwichLetters.text = ""
+    end if
 end sub
 
 sub onTriviaTimerTick()
@@ -249,8 +442,6 @@ sub updateTriviaTimerBar()
     end if
 end sub
 
-' Build the voter character URL string for a given card index.
-' The server puts voterCharacters as an array on each tvView card.
 function buildVoterCharacterUrls(card as Object) as String
     if not card.doesExist("voterCharacters") then return ""
     voters = card.voterCharacters
@@ -259,7 +450,7 @@ function buildVoterCharacterUrls(card as Object) as String
     urls = ""
     for each slug in voters
         if slug <> invalid and slug <> "" then
-            url = m.serverBase + "/Characters/" + slug + ".svg"
+            url = "pkg:/images/Characters/" + slug + ".png"
             if urls = "" then
                 urls = url
             else
@@ -284,6 +475,11 @@ sub renderCardGrid(tvView as Object, interactive as Boolean, numColumns as Integ
     configureGrid(numColumns, numRows, itemSize, translation)
     content = CreateObject("roSGNode", "ContentNode")
     signature = cardKind + "|"
+    if tvView.doesExist("title") then signature = signature + tvView.title + "|"
+    if tvView.doesExist("subtitle") then signature = signature + tvView.subtitle + "|"
+    if tvView.doesExist("description") then signature = signature + tvView.description + "|"
+    if tvView.doesExist("questionEndsAt") and tvView.questionEndsAt <> invalid then signature = signature + tvView.questionEndsAt.ToStr() + "|"
+    if tvView.doesExist("questionDurationMs") then signature = signature + tvView.questionDurationMs.ToStr() + "|"
 
     if tvView.doesExist("cards") and tvView.cards <> invalid then
         for each card in tvView.cards
@@ -304,13 +500,24 @@ sub renderCardGrid(tvView as Object, interactive as Boolean, numColumns as Integ
             if card.doesExist("cardColor") then item.cardcolor = card.cardColor
             if interactive and card.doesExist("footer") then item.votecount = card.footer
 
-            ' Attach voter character icon URLs for game_vote cards
+            ' For trivia_reveal, mark the correct card
+            if cardKind = "trivia_reveal" then
+                if card.doesExist("isCorrect") and card.isCorrect = true then
+                    item.votecount = "correct"
+                else
+                    item.votecount = "wrong"
+                end if
+            end if
+
             if cardKind = "game_vote" then
                 voterUrls = buildVoterCharacterUrls(card)
                 item.votercharacterurls = voterUrls
                 signature = signature + item.title + "|" + item.bodytext + "|" + item.footertext + "|" + voterUrls + "|"
             else
                 signature = signature + item.title + "|" + item.bodytext + "|" + item.footertext + "|"
+                if cardKind = "trivia_reveal" and card.doesExist("isCorrect") then
+                    signature = signature + card.isCorrect.ToStr() + "|"
+                end if
             end if
 
             content.appendChild(item)
@@ -349,6 +556,8 @@ sub configureGrid(numColumns as Integer, numRows as Integer, itemSize as Object,
     m.miniGameGrid.translation = translation
     if numColumns = 2 and numRows = 2 then
         m.miniGameGrid.itemSpacing = [20, 20]
+    else if numColumns = 1 then
+        m.miniGameGrid.itemSpacing = [0, 10]
     else
         m.miniGameGrid.itemSpacing = [30, 30]
     end if
@@ -372,18 +581,14 @@ end sub
 
 sub setGridContentPreservingFocus(content as Object)
     targetIndex = m.lastFocusedIndex
-
     m.miniGameGrid.content = content
-
     itemCount = content.getChildCount()
     if itemCount <= 0 then
         m.lastFocusedIndex = 0
         return
     end if
-
     if targetIndex < 0 then targetIndex = 0
     if targetIndex >= itemCount then targetIndex = itemCount - 1
-
     m.lastFocusedIndex = targetIndex
     m.miniGameGrid.jumpToItem = targetIndex
 end sub

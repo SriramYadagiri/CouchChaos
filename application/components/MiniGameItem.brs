@@ -7,7 +7,6 @@ sub init()
     m.accent = m.top.findNode("accent")
     m.voterIconGroup = m.top.findNode("voterIconGroup")
 
-    ' Cache references to all 12 voter icon Posters
     m.voterIcons = []
     for i = 0 to 11
         m.voterIcons.push(m.top.findNode("voterIcon" + i.ToStr()))
@@ -28,9 +27,8 @@ sub onContentChanged()
     end if
 
     applyCardLayout(cardWidth, cardHeight)
+    resetCardVisualState(cardWidth, cardHeight)
 
-    m.card.color = "0x173049FF"
-    m.accent.color = "0x27C2FFFF"
     hasCardColor = item.doesExist("cardcolor")
     cardKind = ""
     if item.doesExist("cardkind") and item.cardkind <> invalid then
@@ -44,33 +42,68 @@ sub onContentChanged()
     m.titleLabel.text = itemTitle
 
     bodyText = ""
-    if item.doesExist("bodytext") then
+    if item.doesExist("bodytext") and item.bodytext <> invalid then
         bodyText = item.bodytext
     end if
     m.descriptionLabel.text = bodyText
 
-    if item.doesExist("footertext") then
+    if item.doesExist("footertext") and item.footertext <> invalid then
         m.voteLabel.text = item.footertext
-    else if item.doesExist("votecount") then
+    else if item.doesExist("votecount") and item.votecount <> invalid then
         m.voteLabel.text = item.votecount + " vote(s)"
-    else
-        m.voteLabel.text = ""
     end if
 
-    if item.doesExist("cardcolor") then
+    if hasCardColor then
         m.card.color = item.cardcolor
+    end if
+
+    if cardKind = "leaderboard_bar" then
+        renderLeaderboardBar(item, cardWidth, cardHeight)
+        hideAllVoterIcons()
+        return
+    end if
+
+    if cardKind = "trivia_reveal" then
+        isCorrect = item.doesExist("votecount") and item.votecount = "correct"
+
+        if hasCardColor then
+            m.card.color = item.cardcolor
+            m.accent.color = item.cardcolor
+        end if
+
+        m.titleLabel.text = ""
+        m.voteLabel.text = ""
+        m.descriptionLabel.vertAlign = "center"
+        m.descriptionLabel.horizAlign = "center"
+        m.descriptionLabel.numLines = 4
+        m.descriptionLabel.color = "0xFFFFFFFF"
+
+        if isCorrect then
+            m.accent.color = "0xFFFFFFFF"
+            m.descriptionLabel.text = "Correct: " + bodyText
+        else
+            m.card.opacity = 0.3
+        end if
+
+        hideAllVoterIcons()
+        return
     end if
 
     if cardKind = "game_vote" then
         m.accent.color = "0x27C2FFFF"
         m.titleLabel.text = ""
+        m.voteLabel.text = ""
         if itemTitle <> "" then
             m.descriptionLabel.text = itemTitle
         end if
         m.descriptionLabel.numLines = 2
         m.descriptionLabel.vertAlign = "center"
         m.descriptionLabel.horizAlign = "center"
-    else if cardKind = "trivia_option" then
+        renderVoterIcons(item, cardWidth, cardHeight)
+        return
+    end if
+
+    if cardKind = "trivia_option" then
         m.titleLabel.text = ""
         m.voteLabel.text = ""
         if hasCardColor then
@@ -78,13 +111,22 @@ sub onContentChanged()
         end if
         m.descriptionLabel.vertAlign = "center"
         m.descriptionLabel.horizAlign = "center"
-    else if cardKind = "leaderboard" then
+        m.descriptionLabel.numLines = 5
+        hideAllVoterIcons()
+        return
+    end if
+
+    if cardKind = "leaderboard" then
         m.accent.color = "0x64D2FFFF"
         m.descriptionLabel.text = ""
         m.descriptionLabel.numLines = 1
         m.descriptionLabel.vertAlign = "top"
         m.descriptionLabel.horizAlign = "center"
-    else if hasCardColor then
+        hideAllVoterIcons()
+        return
+    end if
+
+    if hasCardColor then
         m.titleLabel.text = ""
         m.voteLabel.text = ""
     else if bodyText = "" and itemTitle <> "" then
@@ -93,16 +135,122 @@ sub onContentChanged()
         m.descriptionLabel.numLines = 2
     end if
 
-    ' Render voter character icons (only on game_vote cards)
-    if cardKind = "game_vote" then
-        renderVoterIcons(item, cardWidth, cardHeight)
-    else
-        hideAllVoterIcons()
+    hideAllVoterIcons()
+end sub
+
+sub renderLeaderboardBar(item as Object, cardWidth as Float, cardHeight as Float)
+    barRatio = 0.0
+    if item.doesExist("description") and item.description <> "" then
+        parts = item.description.split("|")
+        if parts.count() >= 2 then barRatio = Val(parts[1])
     end if
+
+    rank = 0
+    if item.doesExist("votecount") and item.votecount <> "" then
+        rank = Val(item.votecount)
+    end if
+
+    playerName = ""
+    if item.doesExist("title") then playerName = item.title
+
+    scoreLabel = ""
+    if item.doesExist("footertext") then scoreLabel = item.footertext
+
+    characterSlug = ""
+    if item.doesExist("bodytext") then characterSlug = item.bodytext
+
+    leftPad = 16
+    rightPad = 16
+    iconSize = 40
+    if cardHeight < 64 then iconSize = cardHeight - 12
+    if iconSize < 24 then iconSize = 24
+    rankWidth = 28
+    scoreLabelWidth = 90
+    nameLabelWidth = 140
+    iconX = leftPad + rankWidth + 8
+    nameX = iconX + iconSize + 8
+    barX = nameX + nameLabelWidth + 10
+    barWidth = cardWidth - barX - scoreLabelWidth - rightPad - 8
+    if barWidth < 20 then barWidth = 20
+    barHeight = 16
+    if cardHeight < 64 then barHeight = 10
+    centerLabelHeight = 30
+    if cardHeight < 64 then centerLabelHeight = 24
+    barY = Int((cardHeight - barHeight) / 2)
+    centerY = Int((cardHeight - centerLabelHeight) / 2)
+
+    m.titleLabel.text = rank.ToStr() + "."
+    m.titleLabel.translation = [leftPad, centerY]
+    m.titleLabel.width = rankWidth
+    m.titleLabel.height = centerLabelHeight
+    m.titleLabel.horizAlign = "right"
+    m.titleLabel.color = "0x7FD8FFFF"
+    m.titleLabel.font = "font:SmallBoldSystemFont"
+
+    m.descriptionLabel.text = playerName
+    m.descriptionLabel.translation = [nameX, centerY]
+    m.descriptionLabel.width = nameLabelWidth
+    m.descriptionLabel.height = centerLabelHeight
+    m.descriptionLabel.numLines = 1
+    m.descriptionLabel.vertAlign = "center"
+    m.descriptionLabel.horizAlign = "left"
+    m.descriptionLabel.color = "0xFFFFFFFF"
+    m.descriptionLabel.font = "font:MediumBoldSystemFont"
+
+    m.voteLabel.text = scoreLabel
+    m.voteLabel.translation = [cardWidth - scoreLabelWidth - rightPad, centerY]
+    m.voteLabel.width = scoreLabelWidth
+    m.voteLabel.height = centerLabelHeight
+    m.voteLabel.horizAlign = "right"
+    m.voteLabel.color = "0x7FD8FFFF"
+    m.voteLabel.font = "font:SmallBoldSystemFont"
+
+    if rank = 1 then
+        m.card.color = "0x0D2E4EFF"
+        m.accent.color = "0x27C2FFFF"
+    else if rank = 2 then
+        m.card.color = "0x0E2840FF"
+        m.accent.color = "0xA78BFAFF"
+    else if rank = 3 then
+        m.card.color = "0x0E2234FF"
+        m.accent.color = "0xF59E0BFF"
+    else
+        m.card.color = "0x0A1C2CFF"
+        m.accent.color = "0x3A5F7DFF"
+    end if
+
+    if characterSlug <> "" then
+        icon = m.voterIcons[0]
+        icon.uri = characterPosterUri(characterSlug)
+        icon.width = iconSize
+        icon.height = iconSize
+        icon.translation = [iconX, Int((cardHeight - iconSize) / 2)]
+        icon.visible = true
+    else
+        m.voterIcons[0].visible = false
+    end if
+
+    for i = 1 to 11
+        m.voterIcons[i].visible = false
+        m.voterIcons[i].uri = ""
+    end for
+    m.voterIconGroup.visible = characterSlug <> ""
+
+    m.shadow.width = barWidth
+    m.shadow.height = barHeight
+    m.shadow.translation = [barX, barY]
+    m.shadow.color = "0x1A3A55FF"
+
+    fillWidth = Int(barWidth * barRatio)
+    if fillWidth < 4 then fillWidth = 4
+    if fillWidth > barWidth then fillWidth = barWidth
+
+    m.accent.translation = [barX, barY]
+    m.accent.width = fillWidth
+    m.accent.height = barHeight
 end sub
 
 sub renderVoterIcons(item as Object, cardWidth as Float, cardHeight as Float)
-    ' Parse the comma-separated voter character URL list
     voterUrls = []
     if item.doesExist("votercharacterurls") and item.votercharacterurls <> invalid and item.votercharacterurls <> "" then
         voterUrls = item.votercharacterurls.split(",")
@@ -114,17 +262,14 @@ sub renderVoterIcons(item as Object, cardWidth as Float, cardHeight as Float)
         return
     end if
 
-    ' Layout: icon strip sits just above the footer label
-    ' Each icon is 28x28, spaced 4px apart, centered horizontally
-    iconSize = 28
-    iconSpacing = 4
+    iconSize = 42
+    iconSpacing = 6
     maxIcons = 12
     if iconCount > maxIcons then iconCount = maxIcons
 
     totalWidth = (iconSize * iconCount) + (iconSpacing * (iconCount - 1))
     startX = Int((cardWidth - totalWidth) / 2)
-    ' Position strip just above the voteLabel (which sits at cardHeight - 35)
-    iconY = Int(cardHeight - 35 - iconSize - 6)
+    iconY = Int(cardHeight - 40 - iconSize)
 
     m.voterIconGroup.visible = true
     m.voterIconGroup.translation = [0, 0]
@@ -150,6 +295,40 @@ sub hideAllVoterIcons()
     end for
 end sub
 
+sub resetCardVisualState(cardWidth as Float, cardHeight as Float)
+    m.shadow.translation = [6, 8]
+    m.shadow.color = "0x08111DCC"
+    m.card.opacity = 1.0
+    m.card.color = "0x173049FF"
+    m.accent.translation = [0, 0]
+    m.accent.width = cardWidth
+    m.accent.height = 10
+    m.accent.color = "0x27C2FFFF"
+
+    m.titleLabel.text = ""
+    m.titleLabel.color = "0xFFFFFFFF"
+    m.titleLabel.font = "font:MediumBoldSystemFont"
+    m.titleLabel.horizAlign = "left"
+    m.titleLabel.vertAlign = "center"
+    m.titleLabel.numLines = 2
+
+    m.descriptionLabel.text = ""
+    m.descriptionLabel.color = "0xF4F7FBFF"
+    m.descriptionLabel.font = "font:MediumSystemFont"
+    m.descriptionLabel.numLines = 5
+    m.descriptionLabel.horizAlign = "center"
+    m.descriptionLabel.vertAlign = "top"
+
+    m.voteLabel.text = ""
+    m.voteLabel.color = "0xD7E3FFFF"
+    m.voteLabel.font = "font:SmallBoldSystemFont"
+    m.voteLabel.horizAlign = "center"
+    m.voteLabel.vertAlign = "center"
+    m.voteLabel.numLines = 2
+
+    hideAllVoterIcons()
+end sub
+
 sub applyCardLayout(cardWidth as Float, cardHeight as Float)
     m.shadow.width = cardWidth
     m.shadow.height = cardHeight
@@ -160,21 +339,21 @@ sub applyCardLayout(cardWidth as Float, cardHeight as Float)
 
     m.titleLabel.translation = [20, 20]
     m.titleLabel.width = cardWidth - 40
-    m.titleLabel.height = 40
+    m.titleLabel.height = 54
 
-    m.descriptionLabel.translation = [20, 60]
+    m.descriptionLabel.translation = [20, 66]
     m.descriptionLabel.width = cardWidth - 40
-    m.descriptionLabel.height = cardHeight - 100
+    m.descriptionLabel.height = cardHeight - 108
 
     m.voteLabel.translation = [20, cardHeight - 35]
     m.voteLabel.width = cardWidth - 40
-    m.voteLabel.height = 28
+    m.voteLabel.height = 34
 
     if cardWidth >= 500 then
         m.descriptionLabel.translation = [24, 30]
         m.descriptionLabel.width = cardWidth - 48
-        m.descriptionLabel.height = cardHeight - 60
-        m.descriptionLabel.numLines = 4
+        m.descriptionLabel.height = cardHeight - 54
+        m.descriptionLabel.numLines = 5
         m.voteLabel.translation = [20, cardHeight - 32]
     else
         m.descriptionLabel.numLines = 5
@@ -188,3 +367,8 @@ sub applyCardLayout(cardWidth as Float, cardHeight as Float)
         m.descriptionLabel.horizAlign = "center"
     end if
 end sub
+
+function characterPosterUri(characterSlug as String) as String
+    if characterSlug = invalid or characterSlug = "" then return ""
+    return "pkg:/images/Characters/" + characterSlug + ".png"
+end function

@@ -55,7 +55,10 @@
             id="titleLabel"
             translation="[90, 52]"
             width="900"
-            height="44"
+            height="54"
+            numLines="2"
+            wrap="true"
+            ellipsize="false"
             color="0xFFFFFFFF"
         />
 
@@ -63,8 +66,8 @@
             id="subtitleLabel"
             translation="[90, 96]"
             width="980"
-            height="100"
-            numLines="5"
+            height="112"
+            numLines="6"
             ellipsize="false"
             wrap="true"
             font="font:MediumBoldSystemFont"
@@ -73,7 +76,7 @@
 
         <Label
             id="bodyLabel"
-            translation="[90, 138]"
+            translation="[90, 146]"
             width="1070"
             height="26"
             numLines="1"
