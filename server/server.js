@@ -12,8 +12,6 @@ const gameManager = new GameManager({ io, gameRegistry });
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
-
-// Serve character PNGs at /Characters/<slug>.svg
 app.use("/Characters", express.static(path.join(__dirname, "Characters")));
 
 function generateCode() {
@@ -46,10 +44,24 @@ app.get("/api/room/:code", (req, res) => {
 
 app.post("/api/room/:code/start-game-vote", (req, res) => {
   const code = req.params.code.toUpperCase();
-  const roomState = gameManager.startGameVote(code);
+  const sourceMode = String(req.body?.sourceMode || req.query?.sourceMode || "").trim();
+  const roomState = gameManager.startGameVote(code, sourceMode || null);
 
   if (!roomState) {
     return res.status(404).json({ error: "Room not found" });
+  }
+
+  return res.json(roomState);
+});
+
+app.post("/api/room/:code/start-game", (req, res) => {
+  const code = req.params.code.toUpperCase();
+  const gameId = String(req.body?.gameId || req.query?.gameId || "").trim();
+  const sourceMode = String(req.body?.sourceMode || req.query?.sourceMode || "").trim();
+  const roomState = gameManager.startSpecificGame(code, gameId, sourceMode || null);
+
+  if (!roomState) {
+    return res.status(404).json({ error: "Room or game not found" });
   }
 
   return res.json(roomState);

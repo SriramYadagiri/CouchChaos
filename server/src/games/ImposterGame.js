@@ -46,7 +46,7 @@ class ImposterGame extends BaseGame {
     this.state.roundNumber = 1;
     this.state.votes = {};
     this.state.eliminatedIds = [];
-    this.state.lastRoundSummary = `${this.getCurrentSpeakerName()} gives the first hint.`;
+    this.state.lastRoundSummary = `${this.getCurrentSpeakerName()} gives the first hint. Anyone can end the clue round and start the vote.`;
 
     this.setPhase("imposter_round");
     this.emitRoomState();
@@ -159,7 +159,7 @@ class ImposterGame extends BaseGame {
     }
 
     this.advanceTurn();
-    this.state.lastRoundSummary = `${this.getCurrentSpeakerName()} is up next.`;
+    this.state.lastRoundSummary = `${this.getCurrentSpeakerName()} is up next. Keep giving clues or end the round and vote.`;
     this.emitRoomState();
     this.acknowledge(ack, { ok: true });
   }
@@ -171,6 +171,7 @@ class ImposterGame extends BaseGame {
     }
 
     this.state.votes = {};
+    this.state.lastRoundSummary = "The clue round has ended. Everyone is now voting for the imposter.";
     this.setPhase("imposter_voting");
     this.emitRoomState();
     this.acknowledge(ack, { ok: true });
@@ -223,8 +224,8 @@ class ImposterGame extends BaseGame {
     if (!majorityTargetId || highestVotes < majorityNeeded) {
       this.state.votes = {};
       this.setPhase("imposter_round");
-      this.state.lastRoundSummary = "No majority. No one was eliminated.";
       this.advanceTurn();
+      this.state.lastRoundSummary = `No majority. No one was eliminated. ${this.getCurrentSpeakerName()} starts the next clue round.`;
       this.emitRoomState();
       return;
     }
@@ -323,14 +324,29 @@ class ImposterGame extends BaseGame {
     return byTarget;
   }
 
+  getVoterNamesByTarget() {
+    const byTarget = {};
+    for (const [voterId, targetId] of Object.entries(this.state.votes)) {
+      if (!byTarget[targetId]) byTarget[targetId] = [];
+      const voter = this.getPlayer(voterId);
+      if (voter) byTarget[targetId].push(voter.name);
+    }
+    return byTarget;
+  }
+
   getPublicState() {
     const voteCounts = this.getVoteCounts();
     const votesByTarget = this.getVotesByTarget();
+    const voterNamesByTarget = this.getVoterNamesByTarget();
+    const alivePlayers = this.getAlivePlayers();
 
     return {
       roundNumber: this.state.roundNumber,
       currentSpeakerId: this.getCurrentSpeakerId(),
       currentSpeakerName: this.getCurrentSpeakerName(),
+      votesCast: Object.keys(this.state.votes).length,
+      aliveCount: alivePlayers.length,
+      imposterName: this.getPlayer(this.state.imposterId)?.name || "The Imposter",
       alivePlayers: this.getPlayers().map((player) => ({
         id: player.id,
         name: player.name,
@@ -338,7 +354,8 @@ class ImposterGame extends BaseGame {
         isEliminated: this.isEliminated(player.id),
         isCurrentTurn: player.id === this.getCurrentSpeakerId(),
         voteCount: voteCounts[player.id] || 0,
-        voterCharacters: votesByTarget[player.id] || []
+        voterCharacters: votesByTarget[player.id] || [],
+        voterNames: voterNamesByTarget[player.id] || []
       })),
       lastRoundSummary: this.state.lastRoundSummary
     };
@@ -382,12 +399,12 @@ class ImposterGame extends BaseGame {
       return {
         layout: "player_grid",
         title: "Imposter",
-        subtitle: `Round ${publicState.roundNumber} | ${publicState.currentSpeakerName} starts`,
-        description: publicState.lastRoundSummary || "Players give hints out loud. Anyone can trigger a vote when ready.",
+        subtitle: `Round ${publicState.roundNumber} | ${publicState.currentSpeakerName}'s turn`,
+        description: publicState.lastRoundSummary || "Players give clues out loud. Anyone can end the clue round and start the vote.",
         cards: publicState.alivePlayers.map((player) => ({
           title: player.name,
-          description: player.isEliminated ? "Eliminated" : (player.isCurrentTurn ? "Current turn" : "Alive"),
-          footer: player.isCurrentTurn ? "Speaking now" : ""
+          description: player.isEliminated ? "Eliminated" : (player.isCurrentTurn ? "Current turn" : "Still in"),
+          footer: player.isCurrentTurn ? "Speaking now" : (player.isEliminated ? "Out" : "Listening")
         }))
       };
     }
@@ -396,23 +413,23 @@ class ImposterGame extends BaseGame {
       return {
         layout: "player_grid",
         title: "Vote Out The Imposter",
-        subtitle: "Phones are voting now",
-        description: "A majority vote eliminates a player.",
+        subtitle: `${publicState.votesCast}/${publicState.aliveCount} vote(s) locked`,
+        description: "The clue round is over. The TV shows who each vote is landing on as the room decides who to eliminate.",
         cards: publicState.alivePlayers
           .filter((player) => !player.isEliminated)
           .map((player) => ({
             title: player.name,
             description: `${player.voteCount} vote(s)`,
-            footer: ""
+            footer: player.voterNames.length > 0 ? `Voted by: ${player.voterNames.join(", ")}` : "Waiting for votes"
           }))
       };
     }
 
     if (this.room.phase === "imposter_result") {
       return {
-        layout: "leaderboard",
+        layout: "player_grid",
         title: "Imposter Result",
-        subtitle: "Round over",
+        subtitle: `The imposter was ${publicState.imposterName}`,
         description: this.state.lastRoundSummary,
         cards: this.getPlayers().map((player) => ({
           title: player.name,
@@ -443,7 +460,7 @@ class ImposterGame extends BaseGame {
       return {
         layout: "imposter_round",
         title: "Imposter",
-        details: publicState.lastRoundSummary || "Give one spoken hint, then pass the turn or start a vote.",
+        details: publicState.lastRoundSummary || "Give one spoken hint, then pass the turn or end the clue round and vote.",
         canAdvanceTurn: isCurrentSpeaker,
         canStartVote: playerId ? !this.isEliminated(playerId) : false,
         players: publicState.alivePlayers,
@@ -455,7 +472,7 @@ class ImposterGame extends BaseGame {
       return {
         layout: "player_vote",
         title: "Vote out the imposter",
-        details: hasVoted ? "Vote locked in. Waiting for the others." : "Choose one player. Majority eliminates them.",
+        details: hasVoted ? "Vote locked in. Waiting for the others." : "Choose one player. Majority vote eliminates them.",
         myVoteTargetId,
         players: publicState.alivePlayers.filter((player) => !player.isEliminated).map((player) => ({
           id: player.id,
