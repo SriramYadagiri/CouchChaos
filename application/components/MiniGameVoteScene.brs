@@ -8,6 +8,7 @@ sub init()
     m.returnVoteButton = m.top.findNode("returnVoteButton")
     m.pollTask = CreateObject("roSGNode", "PlayerPollTask")
     m.startVoteTask = CreateObject("roSGNode", "StartGameVoteTask")
+    m.startSpecificGameTask = CreateObject("roSGNode", "StartSpecificGameTask")
     m.lastFocusedIndex = 0
     m.currentGridSignature = ""
     m.currentPhase = ""
@@ -18,13 +19,22 @@ sub init()
     m.triviaQuestionDurationMs = 0
     m.triviaCountdown = invalid
     m.top.observeField("roomCode", "onRoomCodeSet")
+    m.top.observeField("gameMode", "onGameModeSet")
     m.pollTask.observeField("roomState", "onRoomUpdate")
     m.startVoteTask.observeField("roomState", "onReturnVoteStarted")
+    m.startSpecificGameTask.observeField("roomState", "onSpecificGameStarted")
     m.triviaTimer.observeField("fire", "onTriviaTimerTick")
     m.miniGameGrid.observeField("itemFocused", "onMiniGameFocused")
     setGridInteractive(true)
     applyBackButtonStyle(false, false)
     showReturnVoteButton(false)
+    onGameModeSet()
+end sub
+
+sub onGameModeSet()
+    if m.currentPhase = "game_select" or m.currentPhase = "game_selected" then
+        updateModeText()
+    end if
 end sub
 
 sub onRoomCodeSet()
@@ -40,6 +50,9 @@ sub cleanup()
     end if
     if m.startVoteTask <> invalid then
         m.startVoteTask.control = "stop"
+    end if
+    if m.startSpecificGameTask <> invalid then
+        m.startSpecificGameTask.control = "stop"
     end if
     if m.triviaTimer <> invalid then
         m.triviaTimer.control = "stop"
@@ -66,7 +79,8 @@ sub onRoomUpdate()
         setChromeText("Vote For The Next Minigame", "Waiting for the next round.", "")
     end if
 
-    showReturnVoteButton(phase = "trivia_leaderboard" or phase = "imposter_result")
+    showReturnVoteButton(phase = "trivia_leaderboard" or phase = "imposter_result" or phase = "word_sandwiches_results")
+    if phase = "game_select" or phase = "game_selected" then updateModeText()
 end sub
 
 function onKeyEvent(key as String, press as Boolean) as Boolean
@@ -100,6 +114,15 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
                 m.top.sceneManager.callFunc("goBack")
             end if
             return true
+        else if key = "OK" and m.focusTarget = "grid" then
+            selectedGameId = getFocusedGameId()
+            if selectedGameId <> "" then
+                m.startSpecificGameTask.roomCode = m.top.roomCode
+                m.startSpecificGameTask.gameId = selectedGameId
+                m.startSpecificGameTask.sourceMode = getGameMode()
+                m.startSpecificGameTask.control = "run"
+                return true
+            end if
         end if
     end if
 
@@ -107,6 +130,7 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
         if key = "OK" then
             applyReturnVoteButtonStyle(true)
             m.startVoteTask.roomCode = m.top.roomCode
+            m.startVoteTask.sourceMode = getGameMode()
             m.startVoteTask.control = "run"
             return true
         else if key = "left" or key = "right" or key = "up" or key = "down" then
@@ -131,6 +155,12 @@ end sub
 
 sub onReturnVoteStarted()
     applyReturnVoteButtonStyle(false)
+end sub
+
+sub onSpecificGameStarted()
+    if m.startSpecificGameTask = invalid then return
+    if m.startSpecificGameTask.roomState = invalid then return
+    applyBackButtonStyle(false, false)
 end sub
 
 sub updateFocusedDescription(index as Integer)
@@ -162,7 +192,7 @@ sub updateTvView(tvView as Object)
     if layout = "game_vote" then
         setTriviaTimerState(invalid, 0)
         showWordSandwichLetters("", false)
-        renderCardGrid(tvView, true, 3, 1, [320, 220], [95, 242], "game_vote")
+        renderGameVoteGrid(tvView)
 
     else if layout = "trivia_question" then
         questionEndsAt = invalid
@@ -215,12 +245,12 @@ sub updateTvView(tvView as Object)
     else if layout = "leaderboard" then
         setTriviaTimerState(invalid, 0)
         showWordSandwichLetters("", false)
-        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "leaderboard")
+        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "status_grid")
 
     else if layout = "player_grid" then
         setTriviaTimerState(invalid, 0)
         showWordSandwichLetters("", false)
-        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "leaderboard")
+        renderCardGrid(tvView, false, 2, 2, [520, 160], [95, 242], "status_grid")
 
     else
         setTriviaTimerState(invalid, 0)
@@ -461,6 +491,61 @@ function buildVoterCharacterUrls(card as Object) as String
     return urls
 end function
 
+function getFocusedGameId() as String
+    if m.currentRoom = invalid then return ""
+    if not m.currentRoom.doesExist("games") or m.currentRoom.games = invalid then return ""
+
+    index = m.lastFocusedIndex
+    if index < 0 or index >= m.currentRoom.games.Count() then return ""
+
+    game = m.currentRoom.games[index]
+    if game = invalid or not game.doesExist("id") then return ""
+    return game.id
+end function
+
+function getGameMode() as String
+    if m.top.gameMode = invalid or m.top.gameMode = "" then return "couch_chaos"
+    return m.top.gameMode
+end function
+
+sub updateModeText()
+    mode = getGameMode()
+    if mode = "couch_chaos" then
+        setChromeText("Choose The Next Couch Chaos Game", "Players can vote on their phones, or the host can start the highlighted game.", "")
+    else if mode = "trivia-toss" then
+        setChromeText("Trivia Toss", "Start or replay Trivia Toss from the TV.", "")
+    else if mode = "word-sandwiches" then
+        setChromeText("Word Sandwiches", "Start or replay Word Sandwiches from the TV.", "")
+    else if mode = "imposter" then
+        setChromeText("Imposter", "Start or replay Imposter from the TV.", "")
+    end if
+end sub
+
+sub renderGameVoteGrid(tvView as Object)
+    cards = []
+    if tvView.doesExist("cards") and tvView.cards <> invalid then
+        cards = tvView.cards
+    end if
+
+    cardCount = cards.count()
+    if cardCount <= 0 then
+        renderCardGrid(tvView, true, 1, 1, [320, 220], [480, 250], "game_vote")
+        return
+    end if
+
+    if cardCount = 1 then
+        renderCardGrid(tvView, true, 1, 1, [420, 220], [430, 250], "game_vote")
+        return
+    end if
+
+    if cardCount = 2 then
+        renderCardGrid(tvView, true, 2, 1, [400, 220], [230, 250], "game_vote")
+        return
+    end if
+
+    renderCardGrid(tvView, true, 3, 1, [320, 220], [120, 250], "game_vote")
+end sub
+
 sub renderCardGrid(tvView as Object, interactive as Boolean, numColumns as Integer, numRows as Integer, itemSize as Object, translation as Object, cardKind as String)
     if interactive then
         m.miniGameGrid.drawFocusFeedback = true
@@ -535,6 +620,11 @@ end sub
 sub showReturnVoteButton(isVisible as Boolean)
     m.isReturnButtonVisible = isVisible
     m.returnVoteButton.visible = isVisible
+    if getGameMode() = "couch_chaos" then
+        m.returnVoteButton.text = "Return To Game Vote"
+    else
+        m.returnVoteButton.text = "Play Again"
+    end if
     applyReturnVoteButtonStyle(false)
 end sub
 

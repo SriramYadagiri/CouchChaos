@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="SharkGame" extends="Group">
-
     <interface>
         <field id="sceneManager" type="node" />
         <field id="roomCode" type="string" />
@@ -10,91 +9,23 @@
     <script type="text/brightscript" uri="SharkGame.brs" />
 
     <children>
-        <Poster
-            id="background"
-            uri="pkg:/images/Ocean.png"
-            width="1280"
-            height="720"
-            translation="[0, 0]"
-            loadDisplayMode="stretch"
-        />
+        <Poster id="background" uri="pkg:/SharkGameImages/Ocean.png" width="1280" height="720" translation="[0, 0]" loadDisplayMode="stretch" />
+        <Poster id="Shark1" uri="pkg:/SharkGameImages/Shark1.png" width="150" height="100" translation="[1400, 50]" visible="false" />
+        <Poster id="Shark2" uri="pkg:/SharkGameImages/Shark2.png" width="150" height="100" translation="[1400, 150]" visible="false" />
+        <Poster id="Shark3" uri="pkg:/SharkGameImages/Shark3.png" width="150" height="100" translation="[1400, 250]" visible="false" />
+        <Poster id="Whale" uri="pkg:/SharkGameImages/Whale.png" width="150" height="100" translation="[1400, 350]" visible="false" />
+        <Poster id="Fish" uri="pkg:/SharkGameImages/Fish.png" width="150" height="100" translation="[100, 250]" visible="false" />
 
-        <Poster
-            id="Shark1"
-            uri="pkg:/images/Shark1.png"
-            width="150"
-            height="100"
-            translation="[1400, 50]"
-            visible="false"
-        />
-        <Poster
-            id="Shark2"
-            uri="pkg:/images/Shark2.png"
-            width="150"
-            height="100"
-            translation="[1400, 150]"
-            visible="false"
-        />
-        <Poster
-            id="Shark3"
-            uri="pkg:/images/Shark3.png"
-            width="150"
-            height="100"
-            translation="[1400, 250]"
-            visible="false"
-        />
-        <Poster
-            id="Whale"
-            uri="pkg:/images/Whale.png"
-            width="150"
-            height="100"
-            translation="[1400, 350]"
-            visible="false"
-        />
-        <Poster
-            id="Fish"
-            uri="pkg:/images/Fish.png"
-            width="150"
-            height="100"
-            translation="[100, 250]"
-            visible="false"
-        />
+        <Timer id="timer" duration="0.12" repeat="true" />
+        <Timer id="timer2" duration="0.16" repeat="true" />
+        <Timer id="timer3" duration="0.19" repeat="true" />
+        <Timer id="timer4" duration="0.14" repeat="true" />
 
-        <Timer id="timer"  duration="1.0" repeat="true" />
-        <Timer id="timer2" duration="1.0" repeat="true" />
-        <Timer id="timer3" duration="1.0" repeat="true" />
-        <Timer id="timer4" duration="1.0" repeat="true" />
+        <Label id="gameOverMsg" text="GAME OVER! Press OK to return to the menu, or Back to exit." color="0xFF4D67FF" font="font:LargeBoldSystemFont" width="1280" height="720" horizAlign="center" vertAlign="center" visible="false" />
 
-        <Label
-            id="gameOverMsg"
-            text="GAME OVER! Press OK to play again, or Back to exit."
-            color="0xFF0000FF"
-            font="font:LargeBoldSystemFont"
-            width="1280"
-            height="720"
-            horizAlign="center"
-            vertAlign="center"
-            visible="false"
-        />
+        <ButtonGroup id="MainMenu" buttons='["Play", "Theme", "Exit"]' translation="[100, 100]" />
 
-        <Audio id="GameMusic" loop="true" />
-        <Audio id="GameOver"  loop="false" />
-
-        <ButtonGroup
-            id="MainMenu"
-            layoutDirection="Vert"
-            buttons='["Play", "Theme:", "Exit"]'
-            translation="[100, 100]"
-            focusedButton="0"
-        />
-
-        <Label
-            id="scoreLabel"
-            translation="[100, 50]"
-            text="Score: 0"
-            font="font:LargeBoldSystemFont"
-            color="0xFFFFFFFF"
-        />
+        <Label id="scoreLabel" translation="[100, 40]" text="Score: 0" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+        <Label id="controlsLabel" translation="[890, 44]" width="320" height="60" numLines="2" horizAlign="right" text="Up/Down moves the fish. Avoid the hazards." font="font:SmallSystemFont" color="0xC8DAEFFF" />
     </children>
-
 </component>

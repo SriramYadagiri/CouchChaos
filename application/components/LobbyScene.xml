@@ -8,139 +8,32 @@
     <children>
         <AppChrome
             id="chrome"
-            title="Room Lobby"
+            title="Couch Chaos Lobby"
             subtitle="Players appear on the right as they connect."
-            bodyText=""
+            bodyText="Start by choosing Trivia Toss or Word Sandwiches."
             showBackButton="true"
             backLabel="Back To Menu"
         />
 
-        <Rectangle
-            id="leftCard"
-            translation="[70, 210]"
-            width="340"
-            height="485"
-            color="0x12263DFF"
-        />
+        <Rectangle id="leftCard" translation="[70, 220]" width="340" height="475" color="0x12263DFF" />
+        <Rectangle id="leftAccent" translation="[70, 220]" width="340" height="10" color="0x27C2FFFF" />
+        <Rectangle id="rightCard" translation="[450, 220]" width="760" height="475" color="0x0E2034FF" />
 
-        <Rectangle
-            id="leftAccent"
-            translation="[70, 210]"
-            width="340"
-            height="10"
-            color="0x27C2FFFF"
-        />
-
-        <Rectangle
-            id="rightCard"
-            translation="[450, 210]"
-            width="760"
-            height="485"
-            color="0x0E2034FF"
-        />
-
-        <!-- LEFT PANEL -->
-        <Group
-            id="leftPanel"
-            translation="[100, 232]"
-        >
-            <Label
-                id="roomCodeTitle"
-                text="ROOM CODE"
-                translation="[0, 0]"
-                width="200"
-                height="32"
-                wrap="true"
-                font="font:SmallBoldSystemFont"
-                color="0x7FD8FFFF"
-            />
-
-            <Label
-                id="roomCodeLabel"
-                translation="[0, 30]"
-                width="280"
-                height="56"
-                horizAlign="left"
-                numLines="2"
-                wrap="true"
-                color="0xFFFFFFFF"
-            />
-
-            <Label
-                id="joinHintLabel"
-                text="Scan the code to join from your phone."
-                translation="[0, 65]"
-                width="280"
-                height="72"
-                numLines="2"
-                wrap="true"
-                color="0xC8DAEFFF"
-            />
-
-            <Rectangle
-                id="qrFrame"
-                translation="[0, 132]"
-                width="280"
-                height="220"
-                color="0x0A1827FF"
-            />
-
-            <Poster
-                id="qrCode"
-                width="180"
-                height="180"
-                translation="[50, 152]"
-            />
-
-            <RoundedButton
-                id="startGameButton"
-                text="Start Game"
-                translation="[0, 386]"
-                buttonWidth="280"
-                buttonHeight="64"
-            />
+        <Group id="leftPanel" translation="[100, 242]">
+            <Label id="roomCodeTitle" text="ROOM CODE" translation="[0, 0]" width="200" height="28" wrap="true" font="font:SmallBoldSystemFont" color="0x7FD8FFFF" />
+            <Label id="roomCodeLabel" translation="[0, 28]" width="280" height="48" horizAlign="left" numLines="2" wrap="true" color="0xFFFFFFFF" />
+            <Label id="joinHintLabel" text="Scan the code to join from your phone." translation="[0, 70]" width="280" height="52" numLines="2" wrap="true" color="0xC8DAEFFF" />
+            <Rectangle id="qrFrame" translation="[0, 124]" width="280" height="210" color="0x0A1827FF" />
+            <Poster id="qrCode" width="180" height="180" translation="[50, 139]" />
+            <RoundedButton id="startGameButton" text="Choose Starting Game" translation="[0, 356]" buttonWidth="280" buttonHeight="60" />
+            <Label id="startHintLabel" text="The TV host can start Trivia Toss or Word Sandwiches right away." translation="[0, 423]" width="280" height="40" numLines="2" wrap="true" color="0xAFC7DAFF" />
         </Group>
 
-
-        <!-- RIGHT PANEL -->
-        <Group
-            id="rightPanel"
-            translation="[490, 240]">
-
-            <Label
-                id="playersTitle"
-                text="Players In Room"
-                translation="[0, 0]"
-                width="260"
-                height="40"
-                wrap="true"
-                font="font:MediumBoldSystemFont"
-                color="0xFFFFFFFF"
-            />
-
-            <Label
-                id="playersSubtitle"
-                text="Disconnected players stay visible while they reconnect."
-                translation="[0, 42]"
-                width="420"
-                height="56"
-                wrap="true"
-                color="0xC8DAEFFF"
-            />
-
-            <MarkupGrid
-                id="playerGrid"
-                itemComponentName="PlayerGridItem"
-                translation="[0, 75]"
-                itemSize="[220, 100]"
-                itemSpacing="[20, 20]"
-                numColumns="3"
-                numRows="3"
-                layoutDirection="horiz"
-                drawFocusFeedback="false"
-            />
+        <Group id="rightPanel" translation="[490, 246]">
+            <Label id="playersTitle" text="Players In Room" translation="[0, 0]" width="260" height="40" wrap="true" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+            <Label id="playersSubtitle" text="Disconnected players stay visible while they reconnect." translation="[0, 42]" width="420" height="56" wrap="true" color="0xC8DAEFFF" />
+            <MarkupGrid id="playerGrid" itemComponentName="PlayerGridItem" translation="[0, 88]" itemSize="[220, 100]" itemSpacing="[20, 20]" numColumns="3" numRows="3" drawFocusFeedback="false" />
         </Group>
-
     </children>
 
     <script type="text/brightscript" uri="LobbyScene.brs" />

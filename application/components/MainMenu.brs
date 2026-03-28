@@ -1,72 +1,152 @@
 sub init()
     m.chrome = m.top.findNode("chrome")
-    m.singlePlayerButton = m.top.findNode("singlePlayerButton")
-    m.createButton = m.top.findNode("createButton")
-    m.createTask = createObject("roSGNode", "CreateRoomTask")
+    m.gameGrid = m.top.findNode("gameGrid")
+    m.createTask = CreateObject("roSGNode", "CreateRoomTask")
     m.createTask.observeField("roomData", "onRoomCreated")
-    m.currentFocus = "singlePlayer"
-    m.singlePlayerButton.isFocused = true
-    m.createButton.isFocused = false
+    m.pendingPartyMode = ""
+    m.isCreatingRoom = false
+
+    m.games = [
+        {
+            id: "couch_chaos",
+            title: "Couch Chaos",
+            description: "Party bundle. Host Trivia Toss, Word Sandwiches, or Imposter from one shared room.",
+            footer: "Party Hub"
+        },
+        {
+            id: "trivia-toss",
+            title: "Trivia Toss",
+            description: "Fast multiplayer trivia. Players answer on phones while the TV handles questions and scoring.",
+            footer: "Party Game"
+        },
+        {
+            id: "word-sandwiches",
+            title: "Word Sandwiches",
+            description: "Find words around the center letters on your phone while the TV tracks the leaderboard.",
+            footer: "Party Game"
+        },
+        {
+            id: "imposter",
+            title: "Imposter",
+            description: "One player does not know the word. Give clues, vote carefully, and catch the imposter.",
+            footer: "Party Game"
+        },
+        {
+            id: "shark_game",
+            title: "Fish Race",
+            description: "Single player TV game. Dodge the incoming hazards and survive as long as possible.",
+            footer: "TV Game"
+        },
+        {
+            id: "karaoke",
+            title: "Karaoke",
+            description: "TV lyrics mode. Follow the words on screen at a steady pace for a sing-along session.",
+            footer: "TV Game"
+        }
+    ]
+
+    populateGrid()
+    m.gameGrid.observeField("itemFocused", "onGameFocused")
+    activate()
 end sub
 
-function onKeyEvent(key, press) as Boolean
-    handled = false
+sub activate()
+    if m.gameGrid = invalid then return
 
-    if press then
-        if key = "OK" then
-            if m.currentFocus = "create" then
-                print "Create Room button pressed"
-                m.createButton.isPressed = true
-                m.createTask.control = "RUN"
-            else if m.currentFocus = "singlePlayer" then
-                print "Single Player Games button pressed"
-                m.singlePlayerButton.isPressed = true
-                if m.top.sceneManager <> invalid then
-                    m.top.sceneManager.callFunc("showSinglePlayer")
-                end if
-            end if
-            handled = true
-        else if key = "down" then
-            if m.currentFocus = "singlePlayer" then
-                m.currentFocus = "create"
-                m.singlePlayerButton.isFocused = false
-                m.createButton.isFocused = true
-                handled = true
-            end if
-        else if key = "up" then
-            if m.currentFocus = "create" then
-                m.currentFocus = "singlePlayer"
-                m.createButton.isFocused = false
-                m.singlePlayerButton.isFocused = true
-                handled = true
-            end if
-        end if
-    else
-        if key = "OK" then
-            if m.currentFocus = "create" then
-                m.createButton.isPressed = false
-            else if m.currentFocus = "singlePlayer" then
-                m.singlePlayerButton.isPressed = false
-            end if
-            handled = true
-        end if
+    index = m.gameGrid.itemFocused
+    if index = invalid or index < 0 or index >= m.games.Count() then
+        index = 0
     end if
-    
-    return handled
+
+    m.gameGrid.jumpToItem = index
+    m.gameGrid.setFocus(true)
+    updateFocusedDescription(index)
+end sub
+
+sub cleanup()
+end sub
+
+sub populateGrid()
+    content = CreateObject("roSGNode", "ContentNode")
+
+    for each game in m.games
+        item = CreateObject("roSGNode", "MiniGameContentNode")
+        item.cardkind = "status_grid"
+        item.title = game.title
+        item.description = game.description
+        item.bodytext = game.description
+        item.footertext = game.footer
+        item.cardwidth = 360
+        item.cardheight = 180
+        content.appendChild(item)
+    end for
+
+    m.gameGrid.content = content
+    m.gameGrid.jumpToItem = 0
+    updateFocusedDescription(0)
+end sub
+
+sub onGameFocused()
+    updateFocusedDescription(m.gameGrid.itemFocused)
+end sub
+
+sub updateFocusedDescription(index as Integer)
+    if index < 0 or index >= m.games.Count() then return
+
+    game = m.games[index]
+    if m.chrome <> invalid then
+        m.chrome.bodyText = game.description + "  " + game.footer
+    end if
+end sub
+
+function onKeyEvent(key as String, press as Boolean) as Boolean
+    if not press then return false
+
+    if key = "OK" then
+        launchSelectedGame()
+        return true
+    end if
+
+    return false
 end function
 
-sub applyCreateButtonStyle(isFocused as Boolean, isPressed as Boolean)
-    m.createButton.isFocused = isFocused
-    m.createButton.isPressed = isPressed
+sub launchSelectedGame()
+    if m.isCreatingRoom then return
+
+    index = m.gameGrid.itemFocused
+    if index < 0 or index >= m.games.Count() then return
+
+    game = m.games[index]
+
+    if game.footer = "Party Game" or game.id = "couch_chaos" then
+        m.pendingPartyMode = game.id
+        m.isCreatingRoom = true
+        if m.chrome <> invalid then
+            m.chrome.subtitle = "Creating room..."
+        end if
+        m.createTask.control = "RUN"
+        return
+    end if
+
+    if game.id = "shark_game" then
+        if m.top.sceneManager <> invalid then m.top.sceneManager.callFunc("showSharkGame")
+    else if game.id = "karaoke" then
+        if m.top.sceneManager <> invalid then m.top.sceneManager.callFunc("showKaraoke")
+    end if
 end sub
 
 sub onRoomCreated()
     room = m.createTask.roomData
-    m.createButton.isPressed = false
-    print "Room created: "; room.code
+    m.isCreatingRoom = false
+    if m.chrome <> invalid then
+        m.chrome.subtitle = "Pick a TV game, launch a single party game, or open Couch Chaos for the full party bundle."
+    end if
 
-    m.top.sceneManager.callFunc("goToLobby", room.code)
-end sub
+    if room = invalid or not room.doesExist("code") then return
 
-sub cleanup()
+    mode = m.pendingPartyMode
+    if mode = "" then mode = "couch_chaos"
+    if m.top.sceneManager <> invalid then
+        m.top.sceneManager.callFunc("showPartyLobby", room.code, mode)
+    end if
 end sub

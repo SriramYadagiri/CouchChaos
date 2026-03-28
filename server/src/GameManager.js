@@ -8,6 +8,37 @@ const CHARACTER_SLUGS = [
   "character_09", "character_10", "character_11", "character_12"
 ];
 
+const MODE_CONFIG = {
+  couch_chaos: {
+    gameIds: ["trivia-toss", "word-sandwiches", "imposter"],
+    title: "Choose The Next Couch Chaos Game",
+    controllerTitle: "Vote for the next Couch Chaos game",
+    subtitle: "Players can vote on their phones, or the host can start the highlighted game from the TV.",
+    description: ""
+  },
+  "trivia-toss": {
+    gameIds: ["trivia-toss"],
+    title: "Trivia Toss",
+    controllerTitle: "Play Trivia Toss",
+    subtitle: "Players can tap in from their phones, and the host can start or replay Trivia Toss from the TV.",
+    description: ""
+  },
+  "word-sandwiches": {
+    gameIds: ["word-sandwiches"],
+    title: "Word Sandwiches",
+    controllerTitle: "Play Word Sandwiches",
+    subtitle: "Players can tap in from their phones, and the host can start or replay Word Sandwiches from the TV.",
+    description: ""
+  },
+  imposter: {
+    gameIds: ["imposter"],
+    title: "Imposter",
+    controllerTitle: "Play Imposter",
+    subtitle: "Players can join on their phones, and the host can start or replay Imposter from the TV.",
+    description: ""
+  }
+};
+
 function normalizeName(name) {
   return String(name || "")
     .trim()
@@ -37,7 +68,8 @@ class GameManager {
       code,
       players: [],
       phase: "lobby",
-      games: this.buildGameCatalog(),
+      catalogMode: "couch_chaos",
+      games: this.buildGameCatalog("couch_chaos"),
       gameVotes: {},
       selectedGame: null,
       activeGame: null,
@@ -51,11 +83,24 @@ class GameManager {
     return this.rooms[code] || null;
   }
 
-  buildGameCatalog() {
-    return gameCatalog.map((game) => ({
-      ...game,
-      votes: 0
-    }));
+  getModeConfig(mode) {
+    return MODE_CONFIG[mode] || MODE_CONFIG.couch_chaos;
+  }
+
+  buildGameCatalog(mode = "couch_chaos") {
+    const modeConfig = this.getModeConfig(mode);
+    return gameCatalog
+      .filter((game) => modeConfig.gameIds.includes(game.id))
+      .map((game) => ({
+        ...game,
+        votes: 0
+      }));
+  }
+
+  setRoomCatalogMode(room, mode) {
+    const nextMode = MODE_CONFIG[mode] ? mode : "couch_chaos";
+    room.catalogMode = nextMode;
+    room.games = this.buildGameCatalog(nextMode);
   }
 
   getUsedCharacters(room) {
@@ -120,7 +165,6 @@ class GameManager {
       return { ok: true, player: existingPlayer, reconnected: true };
     }
 
-    // Check player cap for new (non-reconnecting) players
     const connectedCount = room.players.filter((p) => p.isConnected).length;
     if (connectedCount >= MAX_PLAYERS) {
       return { ok: false, error: "This room is full (max 12 players)" };
@@ -167,9 +211,15 @@ class GameManager {
     }
   }
 
-  startGameVote(code) {
+  startGameVote(code, sourceMode = null) {
     const room = this.getRoom(code);
     if (!room) return null;
+
+    if (sourceMode) {
+      this.setRoomCatalogMode(room, sourceMode);
+    } else {
+      this.setRoomCatalogMode(room, room.catalogMode || "couch_chaos");
+    }
 
     if (room.selectionTimer) {
       clearTimeout(room.selectionTimer);
@@ -182,7 +232,6 @@ class GameManager {
 
     room.activeGame = null;
     room.phase = "game_select";
-    room.games = this.buildGameCatalog();
     room.gameVotes = {};
     room.selectedGame = null;
 
@@ -266,6 +315,44 @@ class GameManager {
     }, 1200);
   }
 
+  startSpecificGame(code, gameId, sourceMode = null) {
+    const room = this.getRoom(code);
+    if (!room || !gameId) return null;
+
+    const registeredGame = this.gameRegistry[gameId];
+    if (!registeredGame) return null;
+
+    const mode = sourceMode || room.catalogMode || "couch_chaos";
+    this.setRoomCatalogMode(room, mode);
+
+    const selectedGame = this.buildGameCatalog(room.catalogMode).find((game) => game.id === gameId)
+      || {
+        id: registeredGame.meta?.id || gameId,
+        name: registeredGame.meta?.name || gameId,
+        description: registeredGame.meta?.description || ""
+      };
+
+    if (room.selectionTimer) {
+      clearTimeout(room.selectionTimer);
+      room.selectionTimer = null;
+    }
+
+    if (room.activeGame) {
+      room.activeGame.cleanup();
+    }
+
+    room.activeGame = null;
+    room.gameVotes = {};
+    room.selectedGame = {
+      id: selectedGame.id,
+      name: selectedGame.name,
+      description: selectedGame.description
+    };
+
+    this.startSelectedGame(code, gameId);
+    return this.buildPublicRoomState(room);
+  }
+
   startSelectedGame(code, gameId) {
     const room = this.getRoom(code);
     if (!room) return;
@@ -310,7 +397,6 @@ class GameManager {
     }));
   }
 
-  // Returns a map of playerId -> character slug for all players in a room
   getPlayerCharacterMap(room) {
     const map = {};
     for (const player of room.players) {
@@ -367,6 +453,7 @@ class GameManager {
       games: room.games,
       selectedGame: room.selectedGame,
       activeGameId: activeGame?.id || null,
+      catalogMode: room.catalogMode,
       tvView,
       controllerView,
       ...publicGameState
@@ -381,7 +468,6 @@ class GameManager {
     return publicState;
   }
 
-  // Build a map of gameId -> array of voter character slugs
   buildVoterCharactersByGame(room) {
     const byGame = {};
     for (const game of room.games) {
@@ -400,13 +486,14 @@ class GameManager {
   buildManagerTvView(room) {
     const connectedCount = room.players.filter((player) => player.isConnected).length;
     const voterCharsByGame = this.buildVoterCharactersByGame(room);
+    const modeConfig = this.getModeConfig(room.catalogMode || "couch_chaos");
 
     if (room.phase === "game_select") {
       return {
         layout: "game_vote",
-        title: "Vote For The Next Minigame",
-        subtitle: "Players vote on their phones. Move focus to preview a game.",
-        description: "",
+        title: modeConfig.title,
+        subtitle: modeConfig.subtitle,
+        description: modeConfig.description,
         cards: room.games.map((game) => ({
           title: game.name,
           description: game.description,
@@ -419,8 +506,8 @@ class GameManager {
     if (room.phase === "game_selected") {
       return {
         layout: "game_vote",
-        title: "Vote For The Next Minigame",
-        subtitle: room.selectedGame ? `Selected minigame: ${room.selectedGame.name}` : "Game selected",
+        title: modeConfig.title,
+        subtitle: room.selectedGame ? `Starting game: ${room.selectedGame.name}` : "Game selected",
         description: room.selectedGame?.description || "",
         cards: room.games.map((game) => ({
           title: game.name,
@@ -433,8 +520,8 @@ class GameManager {
 
     return {
       layout: "message",
-      title: "Vote For The Next Minigame",
-      subtitle: "Waiting for the next round.",
+      title: modeConfig.title,
+      subtitle: "Waiting for the host to choose the next round.",
       description: connectedCount > 0
         ? `${connectedCount} player(s) connected.`
         : "Create a room and have players join."
@@ -442,11 +529,15 @@ class GameManager {
   }
 
   buildManagerControllerView(room) {
+    const modeConfig = this.getModeConfig(room.catalogMode || "couch_chaos");
+
     if (room.phase === "game_select") {
       return {
         layout: "game_vote",
-        title: "Vote for the next game",
-        details: "Choose a minigame on your phone. The Roku shows the preview.",
+        title: modeConfig.controllerTitle,
+        details: room.games.length > 1
+          ? "Choose a multiplayer game on your phone. The Roku shows the preview."
+          : "There is one active party game in this room. Tap it on your phone or let the TV host start it.",
         options: room.games.map((game) => ({
           id: game.id,
           label: game.name,

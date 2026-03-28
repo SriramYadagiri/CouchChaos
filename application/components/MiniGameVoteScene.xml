@@ -2,14 +2,15 @@
     <interface>
         <field id="sceneManager" type="node" />
         <field id="roomCode" type="string" />
+        <field id="gameMode" type="string" value="couch_chaos" />
         <function name="cleanup" />
     </interface>
 
     <children>
         <AppChrome
             id="chrome"
-            title="Vote For The Next Minigame"
-            subtitle="Players vote on their phones. Move focus to preview a game."
+            title="Choose The Next Party Game"
+            subtitle="Players can vote on their phones, or the host can start the highlighted game."
             bodyText=""
             showBackButton="true"
             backLabel="Back To Lobby"
@@ -17,15 +18,15 @@
 
         <Rectangle
             id="gridPanel"
-            translation="[60, 210]"
+            translation="[60, 228]"
             width="1160"
-            height="450"
+            height="420"
             color="0x0E2034FF"
         />
 
         <Rectangle
             id="timerTrack"
-            translation="[90, 178]"
+            translation="[90, 204]"
             width="1070"
             height="14"
             color="0x24415EFF"
@@ -34,7 +35,7 @@
 
         <Rectangle
             id="timerFill"
-            translation="[90, 178]"
+            translation="[90, 204]"
             width="1070"
             height="14"
             color="0x27C2FFFF"
@@ -43,7 +44,7 @@
 
         <Label
             id="wordSandwichLetters"
-            translation="[90, 178]"
+            translation="[90, 204]"
             width="1100"
             height="64"
             numLines="1"
@@ -62,19 +63,19 @@
         <MarkupGrid
             id="miniGameGrid"
             itemComponentName="MiniGameItem"
-            translation="[95, 242]"
-            itemSize="[320, 220]"
+            translation="[230, 250]"
+            itemSize="[400, 220]"
             itemSpacing="[30, 30]"
-            numColumns="3"
+            numColumns="2"
             numRows="1"
-            layoutDirection="horiz"
+           
             drawFocusFeedback="true"
         />
 
         <RoundedButton
             id="returnVoteButton"
             text="Return To Game Vote"
-            translation="[882, 620]"
+            translation="[882, 636]"
             buttonWidth="300"
             buttonHeight="56"
             visible="false"

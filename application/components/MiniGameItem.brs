@@ -29,7 +29,10 @@ sub onContentChanged()
     applyCardLayout(cardWidth, cardHeight)
     resetCardVisualState(cardWidth, cardHeight)
 
-    hasCardColor = item.doesExist("cardcolor")
+    hasCardColor = false
+    if item.doesExist("cardcolor") and item.cardcolor <> invalid and item.cardcolor <> "" then
+        hasCardColor = true
+    end if
     cardKind = ""
     if item.doesExist("cardkind") and item.cardkind <> invalid then
         cardKind = item.cardkind
@@ -54,7 +57,7 @@ sub onContentChanged()
     end if
 
     if hasCardColor then
-        m.card.color = item.cardcolor
+        applyCardColor(m.card, item.cardcolor)
     end if
 
     if cardKind = "leaderboard_bar" then
@@ -67,8 +70,8 @@ sub onContentChanged()
         isCorrect = item.doesExist("votecount") and item.votecount = "correct"
 
         if hasCardColor then
-            m.card.color = item.cardcolor
-            m.accent.color = item.cardcolor
+            applyCardColor(m.card, item.cardcolor)
+            applyCardColor(m.accent, item.cardcolor)
         end if
 
         m.titleLabel.text = ""
@@ -91,14 +94,30 @@ sub onContentChanged()
 
     if cardKind = "game_vote" then
         m.accent.color = "0x27C2FFFF"
-        m.titleLabel.text = ""
+        m.titleLabel.text = itemTitle
+        m.titleLabel.translation = [22, 24]
+        m.titleLabel.width = cardWidth - 44
+        m.titleLabel.height = 40
+        m.titleLabel.horizAlign = "center"
+        m.titleLabel.numLines = 1
+
         m.voteLabel.text = ""
-        if itemTitle <> "" then
-            m.descriptionLabel.text = itemTitle
-        end if
+        m.descriptionLabel.translation = [24, 78]
+        m.descriptionLabel.width = cardWidth - 48
+        m.descriptionLabel.height = 56
+        m.descriptionLabel.text = bodyText
         m.descriptionLabel.numLines = 2
         m.descriptionLabel.vertAlign = "center"
         m.descriptionLabel.horizAlign = "center"
+
+        if item.doesExist("footertext") and item.footertext <> invalid and item.footertext <> "" then
+            m.voteLabel.text = item.footertext
+            m.voteLabel.translation = [20, cardHeight - 64]
+            m.voteLabel.width = cardWidth - 40
+            m.voteLabel.height = 24
+            m.voteLabel.horizAlign = "center"
+        end if
+
         renderVoterIcons(item, cardWidth, cardHeight)
         return
     end if
@@ -107,7 +126,7 @@ sub onContentChanged()
         m.titleLabel.text = ""
         m.voteLabel.text = ""
         if hasCardColor then
-            m.accent.color = item.cardcolor
+            applyCardColor(m.accent, item.cardcolor)
         end if
         m.descriptionLabel.vertAlign = "center"
         m.descriptionLabel.horizAlign = "center"
@@ -122,6 +141,49 @@ sub onContentChanged()
         m.descriptionLabel.numLines = 1
         m.descriptionLabel.vertAlign = "top"
         m.descriptionLabel.horizAlign = "center"
+        hideAllVoterIcons()
+        return
+    end if
+
+
+    if cardKind = "status_grid" then
+        m.accent.color = "0x27C2FFFF"
+        m.titleLabel.translation = [20, 20]
+        m.titleLabel.width = cardWidth - 40
+        m.titleLabel.height = 32
+        m.titleLabel.font = "font:MediumBoldSystemFont"
+        m.titleLabel.horizAlign = "center"
+        m.titleLabel.numLines = 1
+
+        m.descriptionLabel.translation = [18, 58]
+        m.descriptionLabel.width = cardWidth - 36
+        m.descriptionLabel.height = 54
+        m.descriptionLabel.numLines = 2
+        m.descriptionLabel.vertAlign = "center"
+        m.descriptionLabel.horizAlign = "center"
+        m.descriptionLabel.font = "font:SmallSystemFont"
+        m.descriptionLabel.color = "0xF4F7FBFF"
+
+        m.voteLabel.translation = [18, cardHeight - 42]
+        m.voteLabel.width = cardWidth - 36
+        m.voteLabel.height = 24
+        m.voteLabel.horizAlign = "center"
+        m.voteLabel.font = "font:SmallBoldSystemFont"
+        m.voteLabel.color = "0x7FD8FFFF"
+
+        if item.doesExist("footertext") and item.footertext <> invalid and item.footertext <> "" then
+            footerValue = LCase(item.footertext)
+            if Instr(1, footerValue, "speaking") > 0 or Instr(1, footerValue, "current turn") > 0 then
+                m.card.color = "0x1C3D5EFF"
+                m.accent.color = "0x4DDB8AFF"
+                m.voteLabel.color = "0xB5F2CDFF"
+            else if Instr(1, footerValue, "imposter") > 0 then
+                m.card.color = "0x3A1E3AFF"
+                m.accent.color = "0xFF6C81FF"
+                m.voteLabel.color = "0xFFD0D8FF"
+            end if
+        end if
+
         hideAllVoterIcons()
         return
     end if
@@ -352,7 +414,7 @@ sub applyCardLayout(cardWidth as Float, cardHeight as Float)
     if cardWidth >= 500 then
         m.descriptionLabel.translation = [24, 30]
         m.descriptionLabel.width = cardWidth - 48
-        m.descriptionLabel.height = cardHeight - 54
+        m.descriptionLabel.height = cardHeight - 70
         m.descriptionLabel.numLines = 5
         m.voteLabel.translation = [20, cardHeight - 32]
     else
@@ -372,3 +434,13 @@ function characterPosterUri(characterSlug as String) as String
     if characterSlug = invalid or characterSlug = "" then return ""
     return "pkg:/images/Characters/" + characterSlug + ".png"
 end function
+
+
+sub applyCardColor(target as Object, colorValue as Dynamic)
+    if target = invalid or colorValue = invalid then return
+    if Type(colorValue) = "roString" or Type(colorValue) = "String" then
+        if colorValue <> "" then target.color = colorValue
+        return
+    end if
+    target.color = colorValue
+end sub

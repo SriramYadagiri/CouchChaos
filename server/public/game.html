@@ -1201,7 +1201,7 @@ function renderImposterRound(content, view, privateState) {
     actionCard.appendChild(b);
   }
   if (view.canStartVote) {
-    const b = document.createElement("button"); b.className = "primary-btn"; b.style.marginTop = "16px"; b.innerText = "Start Voting";
+    const b = document.createElement("button"); b.className = "primary-btn"; b.style.marginTop = "16px"; b.innerText = "End Round And Vote";
     b.onclick = () => sendGameAction("start_vote", {});
     actionCard.appendChild(b);
   }

@@ -33,7 +33,7 @@
             height="40"
             numLines="2"
             wrap="true"
-            ellipsize="false"
+           
             color="0xFFFFFFFF"
         />
 
@@ -44,7 +44,7 @@
             height="120"
             numLines="5"
             wrap="true"
-            ellipsize="false"
+           
             horizAlign="center"
             vertAlign="center"
             color="0xF4F7FBFF"
@@ -57,7 +57,7 @@
             height="30"
             numLines="2"
             wrap="true"
-            ellipsize="false"
+           
             horizAlign="center"
             color="0xD7E3FFFF"
         />

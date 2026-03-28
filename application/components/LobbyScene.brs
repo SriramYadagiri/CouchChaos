@@ -8,7 +8,7 @@ sub init()
     m.playerGrid = m.top.findNode("playerGrid")
     m.startVoteTask = CreateObject("roSGNode", "StartGameVoteTask")
     m.focusTarget = "start"
-    m.serverBase = "http://192.168.86.69:3000"
+    m.serverBase = "http://192.168.1.104:3000"
 
     m.top.observeField("roomCode", "onRoomCodeSet")
     m.startVoteTask.observeField("roomState", "onVoteStarted")
@@ -97,7 +97,7 @@ function onKeyEvent(key, press) as Boolean
             refreshButtonStyles(true)
             if m.focusTarget = "back" then
                 if m.top.sceneManager <> invalid then
-                    m.chrome.callFunc("applyBackButtonStyle", true)
+                    applyBackButtonStyle(true, true)
                     m.top.sceneManager.callFunc("goBack")
                 end if
             else

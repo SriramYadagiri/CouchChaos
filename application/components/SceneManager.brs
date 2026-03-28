@@ -6,32 +6,32 @@ sub init()
 end sub
 
 sub showMainMenu()
-    print "showMainMenu called"
     m.navigationStack = []
     showScreen("MainMenu", invalid, false)
 end sub
 
-sub goToLobby(code as String)
-    print "Go to Lobby Called"
+sub showPartyLobby(code as String, gameMode as String)
     fields = {
-        roomCode: code
+        roomCode: code,
+        gameMode: gameMode
     }
-    showScreen("LobbyScene", fields, true)
+    showScreen("PartyLobbyScene", fields, true)
 end sub
 
-sub showMiniGameVote(code as String)
+sub showMiniGameVote(code as String, gameMode as String)
     fields = {
-        roomCode: code
+        roomCode: code,
+        gameMode: gameMode
     }
     showScreen("MiniGameVoteScene", fields, true)
 end sub
 
-sub showSinglePlayer()
-    showScreen("SinglePlayerScene", invalid, true)
-end sub
-
 sub showSharkGame()
     showScreen("SharkGame", invalid, true)
+end sub
+
+sub showKaraoke()
+    showScreen("KaraokeScene", invalid, true)
 end sub
 
 sub goBack()
@@ -45,11 +45,6 @@ sub goBack()
 end sub
 
 sub showScreen(componentName as String, fields as Dynamic, rememberCurrent as Boolean)
-    currentChild = invalid
-    if m.top.getChildCount() > 0 then
-        currentChild = m.top.getChild(0)
-    end if
-
     if rememberCurrent and m.currentScreenEntry <> invalid then
         m.navigationStack.push(createNavigationEntry(m.currentScreenEntry.componentName, m.currentScreenEntry.fields))
     end if
@@ -65,7 +60,12 @@ sub showScreen(componentName as String, fields as Dynamic, rememberCurrent as Bo
     applyScreenFields(nextScreen, fields)
     m.top.appendChild(nextScreen)
     m.currentScreenEntry = createNavigationEntry(componentName, fields)
-    nextScreen.setFocus(true)
+
+    if componentName = "MainMenu" then
+        nextScreen.callFunc("activate")
+    else
+        nextScreen.setFocus(true)
+    end if
 end sub
 
 sub cleanupCurrentChild()
@@ -83,8 +83,9 @@ function createNavigationEntry(componentName as String, fields as Dynamic) as Ob
         fields: {}
     }
 
-    if fields <> invalid and fields.doesExist("roomCode") then
-        entry.fields.roomCode = fields.roomCode
+    if fields <> invalid then
+        if fields.doesExist("roomCode") then entry.fields.roomCode = fields.roomCode
+        if fields.doesExist("gameMode") then entry.fields.gameMode = fields.gameMode
     end if
 
     return entry
@@ -93,7 +94,6 @@ end function
 sub applyScreenFields(screen as Object, fields as Dynamic)
     if fields = invalid then return
 
-    if fields.doesExist("roomCode") then
-        screen.roomCode = fields.roomCode
-    end if
+    if fields.doesExist("roomCode") then screen.roomCode = fields.roomCode
+    if fields.doesExist("gameMode") then screen.gameMode = fields.gameMode
 end sub
