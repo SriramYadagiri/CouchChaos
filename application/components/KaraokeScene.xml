@@ -1,0 +1,28 @@
+<component name="KaraokeScene" extends="Group">
+    <interface>
+        <field id="sceneManager" type="node" />
+        <function name="cleanup" />
+    </interface>
+
+    <children>
+        <Rectangle id="background" width="1280" height="720" color="0x081522FF" />
+        <Rectangle id="accentTop" translation="[0, 0]" width="1280" height="10" color="0x27C2FFFF" />
+
+        <AppChrome
+            id="chrome"
+            title="Karaoke"
+            subtitle="Original demo lyrics are shown on screen. Press OK to pause or resume."
+            bodyText="Left or right skips a line. Back returns to the menu."
+            showBackButton="true"
+            backLabel="Back To Menu"
+        />
+
+        <Label id="songTitle" translation="[120, 210]" width="1040" height="44" horizAlign="center" font="font:MediumBoldSystemFont" color="0x7FD8FFFF" text="Tonight We Glow - Demo Track" />
+        <Label id="currentLine" translation="[120, 280]" width="1040" height="140" horizAlign="center" vertAlign="center" numLines="3" wrap="true" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+        <Label id="nextLine" translation="[140, 455]" width="1000" height="100" horizAlign="center" vertAlign="center" numLines="2" wrap="true" font="font:MediumSystemFont" color="0xC8DAEFFF" />
+        <Label id="statusLabel" translation="[160, 610]" width="960" height="34" horizAlign="center" font="font:SmallBoldSystemFont" color="0x92E3FFFF" text="Playing" />
+        <Timer id="lyricTimer" repeat="true" duration="2.8" />
+    </children>
+
+    <script type="text/brightscript" uri="KaraokeScene.brs" />
+</component>

@@ -1,5 +1,4 @@
 sub init()
-    ' Initialize the nodes
     m.gameOverMsg = m.top.findNode("gameOverMsg")
     m.fish = m.top.findNode("Fish")
     m.Shark1 = m.top.findNode("Shark1")
@@ -10,38 +9,18 @@ sub init()
     m.timer2 = m.top.findNode("timer2")
     m.timer3 = m.top.findNode("timer3")
     m.timer4 = m.top.findNode("timer4")
-    m.music = m.top.findNode("GameMusic")
-    m.music2 = m.top.findNode("GameOver")
     m.scoreLabel = m.top.findNode("scoreLabel")
     m.background = m.top.findNode("background")
     m.mainMenu = m.top.findNode("MainMenu")
 
-    m.timer.repeat = true
-    m.timer.duration = Rnd(0) / 10
     m.timer.observeField("fire", "onTimerFire")
-
-    m.timer2.repeat = true
-    m.timer2.duration = Rnd(0) / 10
     m.timer2.observeField("fire", "onTimerFire2")
-
-    m.timer3.repeat = true
-    m.timer3.duration = Rnd(0) / 10
     m.timer3.observeField("fire", "onTimerFire3")
-
-    m.timer4.repeat = true
-    m.timer4.duration = Rnd(0) / 10
     m.timer4.observeField("fire", "onTimerFire4")
 
     m.currentThemeIndex = 0
     m.score = 0
-
-    musicContent = createObject("roSGNode", "ContentNode")
-    musicContent.url = "pkg:/audio/GameSound.mp3"
-    m.music.content = musicContent
-
-    deathContent = createObject("roSGNode", "ContentNode")
-    deathContent.url = "pkg:/audio/GameOver.mp3"
-    m.music2.content = deathContent
+    m.isRunning = false
 
     m.themes = [
         {
@@ -82,61 +61,45 @@ sub init()
         }
     ]
 
+    applyTheme()
     m.mainMenu.setFocus(true)
     m.mainMenu.observeField("buttonSelected", "onButtonSelected")
 end sub
 
-' Called by SceneManager when navigating away — stop all timers and audio cleanly
 sub cleanup()
+    m.isRunning = false
     m.timer.control = "stop"
     m.timer2.control = "stop"
     m.timer3.control = "stop"
     m.timer4.control = "stop"
-    m.music.control = "stop"
-    m.music2.control = "stop"
 end sub
 
 function onKeyEvent(key as String, press as Boolean) as Boolean
     if not press then return false
 
-    ' Back key: if in game over screen or main menu, go back to SinglePlayerScene
     if key = "back" then
         cleanup()
-        if m.top.sceneManager <> invalid then
-            m.top.sceneManager.callFunc("goBack")
-        end if
+        if m.top.sceneManager <> invalid then m.top.sceneManager.callFunc("goBack")
         return true
     end if
 
-    ' Game over screen: OK restarts, back exits (handled above)
     if m.gameOverMsg.visible = true then
         if key = "OK" then
             m.gameOverMsg.visible = false
             m.mainMenu.visible = true
-            m.fish.visible = false
-            m.Shark1.visible = false
-            m.Shark2.visible = false
-            m.Shark3.visible = false
-            m.Whale.visible = false
             m.mainMenu.setFocus(true)
-            m.mainMenu.observeField("buttonSelected", "onButtonSelected")
             return true
         end if
         return false
     end if
 
-    ' In-game movement — only active when the menu is hidden
-    if m.mainMenu.visible = false then
+    if m.isRunning then
         currPos = m.fish.translation
         if key = "up" then
-            if currPos[1] > 50
-                m.fish.translation = [currPos[0], currPos[1] - 100]
-            end if
+            if currPos[1] > 50 then m.fish.translation = [currPos[0], currPos[1] - 100]
             return true
         else if key = "down" then
-            if currPos[1] < 350
-                m.fish.translation = [currPos[0], currPos[1] + 100]
-            end if
+            if currPos[1] < 350 then m.fish.translation = [currPos[0], currPos[1] + 100]
             return true
         end if
     end if
@@ -144,83 +107,54 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
     return false
 end function
 
+function randomSpeed(base as Float) as Float
+    return base + (Rnd(0) * 0.06)
+end function
+
 sub onTimerFire()
-    currentPos = m.Shark1.translation
-    newY = currentPos[1]
-    if currentPos[0] >= 100 then
-        m.Shark1.translation = [currentPos[0] - 5, newY]
-    else
-        m.score = m.score + 1
-        m.scoreLabel.text = "Score: " + m.score.ToStr()
-        m.Shark1.translation = [1400, newY]
-        m.timer.duration = Rnd(0) / 10
-    end if
-    xDist = Abs(m.Shark1.translation[0] - m.fish.translation[0])
-    if xDist < 135 and m.Shark1.translation[1] = m.fish.translation[1] then
-        stopGame()
-    end if
+    moveHazard(m.Shark1, m.timer, 5)
 end sub
 
 sub onTimerFire2()
-    currentPos = m.Shark2.translation
-    newY = currentPos[1]
-    if currentPos[0] >= 100 then
-        m.Shark2.translation = [currentPos[0] - 5, newY]
-    else
-        m.score = m.score + 1
-        m.scoreLabel.text = "Score: " + m.score.ToStr()
-        m.Shark2.translation = [1400, newY]
-        m.timer2.duration = Rnd(0) / 10
-    end if
-    xDist = Abs(m.Shark2.translation[0] - m.fish.translation[0])
-    if xDist < 135 and m.Shark2.translation[1] = m.fish.translation[1] then
-        stopGame()
-    end if
+    moveHazard(m.Shark2, m.timer2, 6)
 end sub
 
 sub onTimerFire3()
-    currentPos = m.Shark3.translation
-    newY = currentPos[1]
-    if currentPos[0] >= 100 then
-        m.Shark3.translation = [currentPos[0] - 5, newY]
-    else
-        m.score = m.score + 1
-        m.scoreLabel.text = "Score: " + m.score.ToStr()
-        m.Shark3.translation = [1400, newY]
-        m.timer3.duration = Rnd(0) / 10
-    end if
-    xDist = Abs(m.Shark3.translation[0] - m.fish.translation[0])
-    if xDist < 135 and m.Shark3.translation[1] = m.fish.translation[1] then
-        stopGame()
-    end if
+    moveHazard(m.Shark3, m.timer3, 7)
 end sub
 
 sub onTimerFire4()
-    currentPos = m.Whale.translation
+    moveHazard(m.Whale, m.timer4, 8)
+end sub
+
+sub moveHazard(hazard as Object, timer as Object, points as Integer)
+    if not m.isRunning then return
+
+    currentPos = hazard.translation
     newY = currentPos[1]
     if currentPos[0] >= 100 then
-        m.Whale.translation = [currentPos[0] - 5, newY]
+        hazard.translation = [currentPos[0] - 18, newY]
     else
-        m.score = m.score + 1
+        m.score = m.score + points
         m.scoreLabel.text = "Score: " + m.score.ToStr()
-        m.Whale.translation = [1400, newY]
-        m.timer4.duration = Rnd(0) / 10
+        hazard.translation = [1400, newY]
+        timer.duration = randomSpeed(0.09)
     end if
-    xDist = Abs(m.Whale.translation[0] - m.fish.translation[0])
-    if xDist < 135 and m.Whale.translation[1] = m.fish.translation[1] then
+
+    xDist = Abs(hazard.translation[0] - m.fish.translation[0])
+    if xDist < 120 and hazard.translation[1] = m.fish.translation[1] then
         stopGame()
     end if
 end sub
 
 sub stopGame()
+    m.isRunning = false
     m.timer.control = "stop"
     m.timer2.control = "stop"
     m.timer3.control = "stop"
     m.timer4.control = "stop"
     m.gameOverMsg.visible = true
-    m.fish.opacity = 0.3
-    m.music.control = "stop"
-    m.music2.control = "play"
+    m.fish.opacity = 0.35
 end sub
 
 sub resetGame()
@@ -238,13 +172,10 @@ sub resetGame()
     m.Whale.translation = [1400, 350]
     m.gameOverMsg.visible = false
     m.fish.opacity = 1.0
-    m.music2.control = "stop"
-    m.music.control = "stop"
-    m.music.control = "play"
-    m.timer.control = "start"
-    m.timer2.control = "start"
-    m.timer3.control = "start"
-    m.timer4.control = "start"
+    m.timer.duration = randomSpeed(0.10)
+    m.timer2.duration = randomSpeed(0.12)
+    m.timer3.duration = randomSpeed(0.14)
+    m.timer4.duration = randomSpeed(0.16)
 end sub
 
 sub onButtonSelected()
@@ -255,36 +186,25 @@ sub onButtonSelected()
     else if buttonIndex = 1 then
         ThemeChange()
     else if buttonIndex = 2 then
-        ' Exit back to SinglePlayerScene instead of killing the app
         cleanup()
-        if m.top.sceneManager <> invalid then
-            m.top.sceneManager.callFunc("goBack")
-        end if
+        if m.top.sceneManager <> invalid then m.top.sceneManager.callFunc("goBack")
     end if
 end sub
 
-sub ThemeChange()
-    m.currentThemeIndex = (m.currentThemeIndex + 1) MOD m.themes.Count()
+sub applyTheme()
     activeTheme = m.themes[m.currentThemeIndex]
-
-    m.fish.uri = ""
-    m.Shark1.uri = ""
-    m.Shark2.uri = ""
-    m.Shark3.uri = ""
-    m.Whale.uri = ""
-    m.background.uri = ""
-
-    if activeTheme.Background <> invalid then
-        m.background.uri = activeTheme.Background
-    end if
-
+    m.background.uri = activeTheme.Background
     m.fish.uri = activeTheme.Fish
     m.Shark1.uri = activeTheme.Shark1
     m.Shark2.uri = activeTheme.Shark2
     m.Shark3.uri = activeTheme.Shark3
     m.Whale.uri = activeTheme.Whale
-
     m.mainMenu.buttons = ["Play", "Theme: " + activeTheme.name, "Exit"]
+end sub
+
+sub ThemeChange()
+    m.currentThemeIndex = (m.currentThemeIndex + 1) MOD m.themes.Count()
+    applyTheme()
     m.mainMenu.setFocus(true)
 end sub
 
@@ -292,5 +212,10 @@ sub StartGame()
     m.mainMenu.visible = false
     m.mainMenu.setFocus(false)
     m.top.setFocus(true)
+    m.isRunning = true
     resetGame()
+    m.timer.control = "start"
+    m.timer2.control = "start"
+    m.timer3.control = "start"
+    m.timer4.control = "start"
 end sub

@@ -1,0 +1,39 @@
+<component name="ImposterLobbyScene" extends="Group">
+    <interface>
+        <field id="roomCode" type="string" />
+        <field id="sceneManager" type="node" />
+        <function name="cleanup" />
+    </interface>
+
+    <children>
+        <AppChrome
+            id="chrome"
+            title="Imposter Lobby"
+            subtitle="Players scan the QR code, get their secret role, and wait for the host to start."
+            bodyText=""
+            showBackButton="true"
+            backLabel="Back To Menu"
+        />
+
+        <Rectangle id="leftCard" translation="[70, 210]" width="340" height="485" color="0x12263DFF" />
+        <Rectangle id="leftAccent" translation="[70, 210]" width="340" height="10" color="0x27C2FFFF" />
+        <Rectangle id="rightCard" translation="[450, 210]" width="760" height="485" color="0x0E2034FF" />
+
+        <Group id="leftPanel" translation="[100, 232]">
+            <Label id="roomCodeTitle" text="ROOM CODE" translation="[0, 0]" width="200" height="32" wrap="true" font="font:SmallBoldSystemFont" color="0x7FD8FFFF" />
+            <Label id="roomCodeLabel" translation="[0, 30]" width="280" height="56" horizAlign="left" numLines="2" wrap="true" color="0xFFFFFFFF" />
+            <Label id="joinHintLabel" text="Scan the code or enter the room code on your phone to join Imposter." translation="[0, 65]" width="280" height="72" numLines="3" wrap="true" color="0xC8DAEFFF" />
+            <Rectangle id="qrFrame" translation="[0, 132]" width="280" height="220" color="0x0A1827FF" />
+            <Poster id="qrCode" width="180" height="180" translation="[50, 152]" />
+            <RoundedButton id="startGameButton" text="Start Imposter" translation="[0, 386]" buttonWidth="280" buttonHeight="64" />
+        </Group>
+
+        <Group id="rightPanel" translation="[490, 240]">
+            <Label id="playersTitle" text="Players In Room" translation="[0, 0]" width="260" height="40" wrap="true" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+            <Label id="playersSubtitle" text="At least 3 players are recommended. Everyone except one player will see the secret word." translation="[0, 42]" width="420" height="56" wrap="true" color="0xC8DAEFFF" />
+            <MarkupGrid id="playerGrid" itemComponentName="PlayerGridItem" translation="[0, 75]" itemSize="[220, 100]" itemSpacing="[20, 20]" numColumns="3" numRows="3" drawFocusFeedback="false" />
+        </Group>
+    </children>
+
+    <script type="text/brightscript" uri="ImposterLobbyScene.brs" />
+</component>

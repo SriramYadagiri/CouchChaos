@@ -20,18 +20,18 @@ sub onBackStateChanged()
     m.backButton.text = valueOrEmpty(m.top.backLabel)
 
     if isVisible then
-        m.titleLabel.translation = [290, 52]
+        m.titleLabel.translation = [290, 38]
         m.titleLabel.width = 700
-        m.subtitleLabel.translation = [290, 96]
+        m.subtitleLabel.translation = [290, 90]
         m.subtitleLabel.width = 780
-        m.bodyLabel.translation = [90, 146]
-        m.bodyLabel.width = 1070
+        m.bodyLabel.translation = [290, 148]
+        m.bodyLabel.width = 850
     else
-        m.titleLabel.translation = [90, 52]
+        m.titleLabel.translation = [90, 38]
         m.titleLabel.width = 900
-        m.subtitleLabel.translation = [90, 96]
+        m.subtitleLabel.translation = [90, 90]
         m.subtitleLabel.width = 980
-        m.bodyLabel.translation = [90, 146]
+        m.bodyLabel.translation = [90, 148]
         m.bodyLabel.width = 1070
     end if
 end sub

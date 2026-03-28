@@ -9,35 +9,10 @@
     </interface>
 
     <children>
-        <Rectangle
-            id="background"
-            width="1280"
-            height="720"
-            color="0x07111FFF"
-        />
-
-        <Rectangle
-            id="headerBand"
-            width="1280"
-            height="172"
-            color="0x0A1828FF"
-        />
-
-        <Rectangle
-            id="headerDivider"
-            translation="[0, 172]"
-            width="1280"
-            height="2"
-            color="0x173B59FF"
-        />
-
-        <Rectangle
-            id="headerGlow"
-            translation="[0, 170]"
-            width="1280"
-            height="1"
-            color="0x36C7F3AA"
-        />
+        <Rectangle id="background" width="1280" height="720" color="0x07111FFF" />
+        <Rectangle id="headerBand" width="1280" height="198" color="0x0A1828FF" />
+        <Rectangle id="headerDivider" translation="[0, 198]" width="1280" height="2" color="0x173B59FF" />
+        <Rectangle id="headerGlow" translation="[0, 196]" width="1280" height="1" color="0x36C7F3AA" />
 
         <RoundedButton
             id="backButton"
@@ -51,37 +26,9 @@
             visible="false"
         />
 
-        <Label
-            id="titleLabel"
-            translation="[90, 52]"
-            width="900"
-            height="54"
-            numLines="2"
-            wrap="true"
-            ellipsize="false"
-            color="0xFFFFFFFF"
-        />
-
-        <Label
-            id="subtitleLabel"
-            translation="[90, 96]"
-            width="980"
-            height="112"
-            numLines="6"
-            ellipsize="false"
-            wrap="true"
-            font="font:MediumBoldSystemFont"
-            color="0xD7E3FFFF"
-        />
-
-        <Label
-            id="bodyLabel"
-            translation="[90, 146]"
-            width="1070"
-            height="26"
-            numLines="1"
-            color="0xAFC7DAFF"
-        />
+        <Label id="titleLabel" translation="[90, 38]" width="900" height="48" numLines="2" wrap="true" color="0xFFFFFFFF" />
+        <Label id="subtitleLabel" translation="[90, 90]" width="980" height="52" numLines="3" wrap="true" font="font:MediumBoldSystemFont" color="0xD7E3FFFF" />
+        <Label id="bodyLabel" translation="[90, 150]" width="1070" height="34" numLines="2" wrap="true" color="0xAFC7DAFF" />
     </children>
 
     <script type="text/brightscript" uri="AppChrome.brs" />

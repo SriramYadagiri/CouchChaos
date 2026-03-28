@@ -1,10 +1,10 @@
 <component name="SceneManager" extends="Scene">
      <interface>
-        <function name="goToLobby"/>
+        <function name="showPartyLobby"/>
         <function name="showMainMenu"/>
         <function name="showMiniGameVote"/>
-        <function name="showSinglePlayer"/>
         <function name="showSharkGame"/>
+        <function name="showKaraoke"/>
         <function name="goBack"/>
     </interface>
 

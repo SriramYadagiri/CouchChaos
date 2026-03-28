@@ -31,7 +31,7 @@
             itemSpacing="[30, 30]"
             numColumns="3"
             numRows="1"
-            layoutDirection="horiz"
+           
             drawFocusFeedback="true"
         />
 

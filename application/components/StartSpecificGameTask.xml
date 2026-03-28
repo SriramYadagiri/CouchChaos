@@ -1,0 +1,10 @@
+<component name="StartSpecificGameTask" extends="Task">
+    <interface>
+        <field id="roomCode" type="string"/>
+        <field id="gameId" type="string"/>
+        <field id="sourceMode" type="string" value="couch_chaos"/>
+        <field id="roomState" type="assocarray"/>
+    </interface>
+
+    <script type="text/brightscript" uri="StartSpecificGameTask.brs"/>
+</component>
