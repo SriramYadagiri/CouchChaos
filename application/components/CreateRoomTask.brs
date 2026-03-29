@@ -3,7 +3,7 @@ sub init()
 end sub
 
 function createRoom()
-    url = "http://192.168.1.104:3000/api/create-room"
+    url = "https://couchchaos.onrender.com/api/create-room"
 
     transfer = CreateObject("roUrlTransfer")
     transfer.SetUrl(url)

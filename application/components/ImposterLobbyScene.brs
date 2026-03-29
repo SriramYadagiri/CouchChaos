@@ -4,7 +4,7 @@ sub init()
     m.startGameButton = m.top.findNode("startGameButton")
     m.playerGrid = m.top.findNode("playerGrid")
     m.focusTarget = "start"
-    m.serverBase = "http://192.168.1.104:3000"
+    m.serverBase = "https://couchchaos.onrender.com"
 
     m.pollTask = CreateObject("roSGNode", "PlayerPollTask")
     m.startTask = CreateObject("roSGNode", "StartSpecificGameTask")

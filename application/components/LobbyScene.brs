@@ -8,7 +8,7 @@ sub init()
     m.playerGrid = m.top.findNode("playerGrid")
     m.startVoteTask = CreateObject("roSGNode", "StartGameVoteTask")
     m.focusTarget = "start"
-    m.serverBase = "http://192.168.1.104:3000"
+    m.serverBase = "https://couchchaos.onrender.com"
 
     m.top.observeField("roomCode", "onRoomCodeSet")
     m.startVoteTask.observeField("roomState", "onVoteStarted")
