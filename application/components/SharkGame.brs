@@ -281,8 +281,8 @@ sub applyResponsiveLayout()
 
     m.spawnX = scalePoint([m.baseSpawnX, 0])[0]
     m.leftResetX = scalePoint([100, 0])[0]
-    m.collisionThreshold = scaleValue(120)
-    if m.collisionThreshold < 90 then m.collisionThreshold = 90
+    m.collisionThreshold = scaleValue(70)
+    if m.collisionThreshold < 60 then m.collisionThreshold = 60
 
     scorePos = scalePoint([100, 40])
     controlsPos = scalePoint([890, 44])
