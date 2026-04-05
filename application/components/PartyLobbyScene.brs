@@ -79,8 +79,7 @@ sub onRoomCodeSet()
     m.roomCodeLabel.text = m.top.roomCode
 
     m.qrCode = m.top.findNode("qrCode")
-    joinUrl = m.serverBase + "/join?code=" + m.top.roomCode
-    encodedUrl = urlEncode(joinUrl)
+    encodedUrl = "https%3A%2F%2Fcouchchaos.onrender.com%2Fjoin%3Fcode%3D" + m.top.roomCode
 
     m.qrCode.uri = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodedUrl
 
@@ -227,16 +226,3 @@ sub onGameStarted()
         m.top.sceneManager.callFunc("showMiniGameVote", m.top.roomCode, getGameMode())
     end if
 end sub
-
-function urlEncode(value as String) as String
-    encoded = value
-    encoded = Replace(encoded, "%", "%25")
-    encoded = Replace(encoded, " ", "%20")
-    encoded = Replace(encoded, ":", "%3A")
-    encoded = Replace(encoded, "/", "%2F")
-    encoded = Replace(encoded, "?", "%3F")
-    encoded = Replace(encoded, "&", "%26")
-    encoded = Replace(encoded, "=", "%3D")
-    encoded = Replace(encoded, "+", "%2B")
-    return encoded
-end function
