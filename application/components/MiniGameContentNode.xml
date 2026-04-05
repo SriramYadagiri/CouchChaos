@@ -10,5 +10,7 @@
         <field id="cardheight" type="float" />
         <!-- Comma-separated list of character slugs who voted for this game -->
         <field id="votercharacterurls" type="string" />
+        <field id="progressstates" type="string" />
+        <field id="scoretext" type="string" />
     </interface>
 </component>

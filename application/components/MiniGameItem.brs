@@ -11,6 +11,15 @@ sub init()
     for i = 0 to 11
         m.voterIcons.push(m.top.findNode("voterIcon" + i.ToStr()))
     end for
+
+    m.wordGuessProgressGroup = m.top.findNode("wordGuessProgressGroup")
+    m.progressMetaLabel = m.top.findNode("progressMetaLabel")
+    m.progressTiles = []
+    m.progressTileLabels = []
+    for i = 0 to 4
+        m.progressTiles.push(m.top.findNode("progressTile" + i.ToStr()))
+        m.progressTileLabels.push(m.top.findNode("progressTileLabel" + i.ToStr()))
+    end for
 end sub
 
 sub onContentChanged()
@@ -28,6 +37,7 @@ sub onContentChanged()
 
     applyCardLayout(cardWidth, cardHeight)
     resetCardVisualState(cardWidth, cardHeight)
+    hideWordGuessProgressGroup()
 
     hasCardColor = false
     if item.doesExist("cardcolor") and item.cardcolor <> invalid and item.cardcolor <> "" then
@@ -62,6 +72,12 @@ sub onContentChanged()
 
     if cardKind = "leaderboard_bar" then
         renderLeaderboardBar(item, cardWidth, cardHeight)
+        hideAllVoterIcons()
+        return
+    end if
+
+    if cardKind = "word_guess_progress" then
+        renderWordGuessProgressRow(item, cardWidth, cardHeight)
         hideAllVoterIcons()
         return
     end if
@@ -148,16 +164,16 @@ sub onContentChanged()
 
     if cardKind = "status_grid" then
         m.accent.color = "0x27C2FFFF"
-        m.titleLabel.translation = [20, 20]
-        m.titleLabel.width = cardWidth - 40
-        m.titleLabel.height = 32
+        m.titleLabel.translation = [18, 18]
+        m.titleLabel.width = cardWidth - 36
+        m.titleLabel.height = 40
         m.titleLabel.font = "font:MediumBoldSystemFont"
         m.titleLabel.horizAlign = "center"
-        m.titleLabel.numLines = 1
+        m.titleLabel.numLines = 2
 
-        m.descriptionLabel.translation = [18, 58]
+        m.descriptionLabel.translation = [18, 66]
         m.descriptionLabel.width = cardWidth - 36
-        m.descriptionLabel.height = 54
+        m.descriptionLabel.height = 48
         m.descriptionLabel.numLines = 2
         m.descriptionLabel.vertAlign = "center"
         m.descriptionLabel.horizAlign = "center"
@@ -198,6 +214,185 @@ sub onContentChanged()
     end if
 
     hideAllVoterIcons()
+end sub
+
+
+sub hideWordGuessProgressGroup()
+    if m.wordGuessProgressGroup <> invalid then m.wordGuessProgressGroup.visible = false
+    if m.progressMetaLabel <> invalid then m.progressMetaLabel.text = ""
+    for i = 0 to 4
+        if m.progressTiles[i] <> invalid then
+            m.progressTiles[i].visible = false
+            m.progressTiles[i].color = "0x203246FF"
+            m.progressTiles[i].translation = [0, 0]
+            m.progressTiles[i].width = 62
+            m.progressTiles[i].height = 62
+        end if
+        if m.progressTileLabels[i] <> invalid then
+            m.progressTileLabels[i].visible = false
+            m.progressTileLabels[i].text = ""
+            m.progressTileLabels[i].translation = [0, 0]
+            m.progressTileLabels[i].width = 62
+            m.progressTileLabels[i].height = 62
+        end if
+    end for
+end sub
+
+sub renderWordGuessProgressRow(item as Object, cardWidth as Float, cardHeight as Float)
+    hideWordGuessProgressGroup()
+
+    rankText = ""
+    if item.doesExist("votecount") and item.votecount <> invalid then rankText = item.votecount
+
+    playerName = ""
+    if item.doesExist("title") and item.title <> invalid then playerName = item.title
+
+    footerText = ""
+    if item.doesExist("footertext") and item.footertext <> invalid then footerText = item.footertext
+
+    scoreText = ""
+    if item.doesExist("scoretext") and item.scoretext <> invalid then scoreText = item.scoretext
+
+    characterSlug = ""
+    if item.doesExist("description") and item.description <> invalid then characterSlug = item.description
+
+    guessText = ""
+    if item.doesExist("bodytext") and item.bodytext <> invalid then guessText = UCase(item.bodytext)
+
+    progressStates = []
+    if item.doesExist("progressstates") and item.progressstates <> invalid and item.progressstates <> "" then
+        progressStates = item.progressstates.split(",")
+    end if
+
+    leftPad = 16
+    rightPad = 16
+    rankWidth = 28
+    iconSize = 42
+    if cardHeight < 90 then iconSize = 34
+    nameWidth = 170
+    if cardWidth < 900 then nameWidth = 150
+    tileSize = 46
+    tileGap = 6
+    if cardHeight < 108 then
+        tileSize = 40
+        tileGap = 4
+    end if
+    tilesWidth = (tileSize * 5) + (tileGap * 4)
+    scoreWidth = 100
+
+    iconX = leftPad + rankWidth + 10
+    nameX = iconX + iconSize + 10
+    tilesX = nameX + nameWidth + 18
+    scoreX = cardWidth - rightPad - scoreWidth
+    if tilesX + tilesWidth > scoreX - 8 then
+        nameWidth = scoreX - tilesWidth - 8 - nameX - 18
+        if nameWidth < 96 then nameWidth = 96
+        tilesX = nameX + nameWidth + 18
+    end if
+
+    centerY = Int((cardHeight - iconSize) / 2)
+    labelY = Int((cardHeight - 32) / 2)
+    tileY = Int((cardHeight - tileSize) / 2) - 8
+    metaY = tileY + tileSize + 8
+
+    m.card.color = "0x0A1C2CFF"
+    m.accent.color = "0x27C2FFFF"
+    m.accent.translation = [0, 0]
+    m.accent.width = cardWidth
+    m.accent.height = 8
+
+    m.titleLabel.text = rankText + "."
+    m.titleLabel.translation = [leftPad, labelY]
+    m.titleLabel.width = rankWidth
+    m.titleLabel.height = 32
+    m.titleLabel.horizAlign = "right"
+    m.titleLabel.vertAlign = "center"
+    m.titleLabel.font = "font:SmallBoldSystemFont"
+    m.titleLabel.color = "0x7FD8FFFF"
+    m.titleLabel.numLines = 1
+
+    m.descriptionLabel.text = playerName
+    m.descriptionLabel.translation = [nameX, labelY - 10]
+    m.descriptionLabel.width = nameWidth
+    m.descriptionLabel.height = 28
+    m.descriptionLabel.horizAlign = "left"
+    m.descriptionLabel.vertAlign = "center"
+    m.descriptionLabel.font = "font:MediumBoldSystemFont"
+    m.descriptionLabel.color = "0xFFFFFFFF"
+    m.descriptionLabel.numLines = 1
+
+    m.voteLabel.text = scoreText
+    m.voteLabel.translation = [scoreX, labelY - 10]
+    m.voteLabel.width = scoreWidth
+    m.voteLabel.height = 28
+    m.voteLabel.horizAlign = "right"
+    m.voteLabel.vertAlign = "center"
+    m.voteLabel.font = "font:SmallBoldSystemFont"
+    m.voteLabel.color = "0x7FD8FFFF"
+    m.voteLabel.numLines = 1
+
+    hideAllVoterIcons()
+    if characterSlug <> "" then
+        icon = m.voterIcons[0]
+        icon.uri = characterPosterUri(characterSlug)
+        icon.width = iconSize
+        icon.height = iconSize
+        icon.translation = [iconX, centerY]
+        icon.visible = true
+        m.voterIconGroup.visible = true
+    end if
+
+    if m.wordGuessProgressGroup <> invalid then
+        m.wordGuessProgressGroup.visible = true
+    end if
+
+    tileStartX = tilesX
+    normalizedGuess = guessText
+    if Len(normalizedGuess) < 5 then
+        while Len(normalizedGuess) < 5
+            normalizedGuess = normalizedGuess + " "
+        end while
+    end if
+
+    for i = 0 to 4
+        tileColor = "0x203246FF"
+        if i < progressStates.count() then
+            state = LCase(progressStates[i])
+            if state = "correct" or state = "green" then
+                tileColor = "0x4DDB8AFF"
+            else if state = "present" or state = "yellow" then
+                tileColor = "0xEAB308FF"
+            else if state = "absent" or state = "gray" or state = "grey" then
+                tileColor = "0x5D6B7CFF"
+            end if
+        end if
+
+        letter = ""
+        if i < Len(normalizedGuess) then
+            letter = Mid(normalizedGuess, i + 1, 1)
+        end if
+        if letter = " " then letter = ""
+
+        tile = m.progressTiles[i]
+        label = m.progressTileLabels[i]
+        tile.translation = [tileStartX + (i * (tileSize + tileGap)), tileY]
+        tile.width = tileSize
+        tile.height = tileSize
+        tile.color = tileColor
+        tile.visible = true
+
+        label.translation = tile.translation
+        label.width = tileSize
+        label.height = tileSize
+        label.text = letter
+        label.visible = true
+    end for
+
+    m.progressMetaLabel.translation = [tileStartX, metaY]
+    m.progressMetaLabel.width = tilesWidth
+    m.progressMetaLabel.height = 24
+    m.progressMetaLabel.text = footerText
+    m.progressMetaLabel.visible = footerText <> ""
 end sub
 
 sub renderLeaderboardBar(item as Object, cardWidth as Float, cardHeight as Float)

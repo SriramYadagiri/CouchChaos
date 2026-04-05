@@ -10,9 +10,9 @@
 
     <children>
         <Rectangle id="background" width="1280" height="720" color="0x07111FFF" />
-        <Rectangle id="headerBand" width="1280" height="198" color="0x0A1828FF" />
-        <Rectangle id="headerDivider" translation="[0, 198]" width="1280" height="2" color="0x173B59FF" />
-        <Rectangle id="headerGlow" translation="[0, 196]" width="1280" height="1" color="0x36C7F3AA" />
+        <Rectangle id="headerBand" width="1280" height="212" color="0x0A1828FF" />
+        <Rectangle id="headerDivider" translation="[0, 212]" width="1280" height="2" color="0x173B59FF" />
+        <Rectangle id="headerGlow" translation="[0, 210]" width="1280" height="1" color="0x36C7F3AA" />
 
         <RoundedButton
             id="backButton"
@@ -26,9 +26,9 @@
             visible="false"
         />
 
-        <Label id="titleLabel" translation="[90, 38]" width="900" height="48" numLines="2" wrap="true" color="0xFFFFFFFF" />
-        <Label id="subtitleLabel" translation="[90, 90]" width="980" height="52" numLines="3" wrap="true" font="font:MediumBoldSystemFont" color="0xD7E3FFFF" />
-        <Label id="bodyLabel" translation="[90, 150]" width="1070" height="34" numLines="2" wrap="true" color="0xAFC7DAFF" />
+        <Label id="titleLabel" translation="[90, 34]" width="860" height="56" numLines="2" wrap="true" color="0xFFFFFFFF" />
+        <Label id="subtitleLabel" translation="[90, 90]" width="930" height="50" numLines="2" wrap="true" font="font:MediumBoldSystemFont" color="0xD7E3FFFF" />
+        <Label id="bodyLabel" translation="[90, 144]" width="1000" height="44" numLines="2" wrap="true" color="0xAFC7DAFF" />
     </children>
 
     <script type="text/brightscript" uri="AppChrome.brs" />

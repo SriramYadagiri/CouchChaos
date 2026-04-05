@@ -4,47 +4,11 @@
     </interface>
 
     <children>
-        <Rectangle
-            id="card"
-            width="220"
-            height="100"
-            color="0x173049FF"
-        />
-
-        <Rectangle
-            id="accent"
-            width="220"
-            height="8"
-            color="0x27C2FFFF"
-        />
-
-        <!-- Character icon: sits on the left side of the card -->
-        <Poster
-            id="characterIcon"
-            width="52"
-            height="52"
-            translation="[10, 24]"
-            loadDisplayMode="scaleToFit"
-            visible="false"
-        />
-
-        <Label
-            id="playerName"
-            translation="[70, 14]"
-            width="138"
-            height="36"
-            horizAlign="left"
-            color="0xFFFFFFFF"
-        />
-
-        <Label
-            id="statusLabel"
-            translation="[70, 54]"
-            width="138"
-            height="24"
-            horizAlign="left"
-            color="0xBFD8EAFF"
-        />
+        <Rectangle id="card" width="220" height="80" color="0x173049FF" />
+        <Rectangle id="accent" width="220" height="6" color="0x27C2FFFF" />
+        <Poster id="characterIcon" width="40" height="40" translation="[12, 22]" loadDisplayMode="scaleToFit" visible="false" />
+        <Label id="playerName" translation="[62, 12]" width="146" height="28" horizAlign="left" color="0xFFFFFFFF" />
+        <Label id="statusLabel" translation="[62, 42]" width="146" height="22" horizAlign="left" color="0xBFD8EAFF" />
     </children>
 
     <script type="text/brightscript" uri="PlayerGridItem.brs" />

@@ -16,24 +16,24 @@
             backLabel="Back To Menu"
         />
 
-        <Rectangle id="leftCard" translation="[70, 220]" width="340" height="475" color="0x12263DFF" />
+        <Rectangle id="leftCard" translation="[70, 220]" width="340" height="486" color="0x12263DFF" />
         <Rectangle id="leftAccent" translation="[70, 220]" width="340" height="10" color="0x27C2FFFF" />
-        <Rectangle id="rightCard" translation="[450, 220]" width="760" height="475" color="0x0E2034FF" />
+        <Rectangle id="rightCard" translation="[450, 220]" width="760" height="486" color="0x0E2034FF" />
 
-        <Group id="leftPanel" translation="[100, 242]">
+        <Group id="leftPanel" translation="[100, 238]">
             <Label id="roomCodeTitle" text="ROOM CODE" translation="[0, 0]" width="200" height="28" wrap="true" font="font:SmallBoldSystemFont" color="0x7FD8FFFF" />
-            <Label id="roomCodeLabel" translation="[0, 28]" width="280" height="48" horizAlign="left" numLines="2" wrap="true" color="0xFFFFFFFF" />
-            <Label id="joinHintLabel" text="Scan the code to join from your phone." translation="[0, 70]" width="280" height="70" numLines="3" wrap="true" color="0xC8DAEFFF" />
-            <Rectangle id="qrFrame" translation="[0, 132]" width="280" height="220" color="0x0A1827FF" />
-            <Poster id="qrCode" width="180" height="180" translation="[50, 152]" />
-            <RoundedButton id="startGameButton" text="Start" translation="[0, 386]" buttonWidth="280" buttonHeight="60" />
-            <Label id="startHintLabel" text="" translation="[0, 452]" width="280" height="56" numLines="3" wrap="true" color="0xAFC7DAFF" />
+            <Label id="roomCodeLabel" translation="[0, 26]" width="280" height="44" horizAlign="left" numLines="2" wrap="true" color="0xFFFFFFFF" />
+            <Label id="joinHintLabel" text="Scan the code to join from your phone." translation="[0, 68]" width="280" height="52" numLines="2" wrap="true" color="0xC8DAEFFF" />
+            <Rectangle id="qrFrame" translation="[0, 126]" width="280" height="208" color="0x0A1827FF" />
+            <Poster id="qrCode" width="180" height="180" translation="[50, 140]" />
+            <RoundedButton id="startGameButton" text="Start" translation="[0, 348]" buttonWidth="280" buttonHeight="56" />
+            <Label id="startHintLabel" text="" translation="[0, 412]" width="280" height="40" numLines="2" wrap="true" color="0xAFC7DAFF" />
         </Group>
 
-        <Group id="rightPanel" translation="[490, 246]">
+        <Group id="rightPanel" translation="[490, 242]">
             <Label id="playersTitle" text="Players In Room" translation="[0, 0]" width="260" height="40" wrap="true" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
-            <Label id="playersSubtitle" text="Disconnected players stay visible while they reconnect." translation="[0, 42]" width="460" height="56" wrap="true" color="0xC8DAEFFF" />
-            <MarkupGrid id="playerGrid" itemComponentName="PlayerGridItem" translation="[0, 88]" itemSize="[220, 100]" itemSpacing="[20, 20]" numColumns="3" numRows="3" drawFocusFeedback="false" />
+            <Label id="playersSubtitle" text="Disconnected players stay visible while they reconnect." translation="[0, 40]" width="460" height="42" wrap="true" color="0xC8DAEFFF" />
+            <MarkupGrid id="playerGrid" itemComponentName="PlayerGridItem" translation="[0, 86]" itemSize="[220, 80]" itemSpacing="[20, 12]" numColumns="3" numRows="4" drawFocusFeedback="false" />
         </Group>
     </children>
 

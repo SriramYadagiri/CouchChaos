@@ -79,7 +79,7 @@ sub onRoomUpdate()
         setChromeText("Vote For The Next Minigame", "Waiting for the next round.", "")
     end if
 
-    showReturnVoteButton(phase = "trivia_leaderboard" or phase = "imposter_result" or phase = "word_sandwiches_results")
+    showReturnVoteButton(phase = "trivia_leaderboard" or phase = "imposter_result" or phase = "word_sandwiches_results" or phase = "word_match_results")
     if phase = "game_select" or phase = "game_selected" then updateModeText()
 end sub
 
@@ -242,6 +242,12 @@ sub updateTvView(tvView as Object)
         setTriviaTimerState(invalid, 0)
         renderWordSandwichesBoard(tvView)
 
+    else if layout = "word_guess_board" then
+        renderWordGuessBoard(tvView, true)
+
+    else if layout = "word_guess_results" then
+        renderWordGuessBoard(tvView, false)
+
     else if layout = "leaderboard" then
         setTriviaTimerState(invalid, 0)
         showWordSandwichLetters("", false)
@@ -322,16 +328,72 @@ sub renderLeaderboardBars(tvView as Object)
         item.votecount = rank.ToStr()
 
         item.cardwidth = 1060
-        item.cardheight = 80
+        item.cardheight = rowHeight
 
         signature = signature + item.title + "|" + item.description + "|"
         content.appendChild(item)
     end for
 
     ' Reconfigure grid for single-column bar layout
-    configureGrid(1, cards.count(), [1060, 80], [90, 210])
+    rowHeight = getLeaderboardRowHeight(cards.count(), 364, 80, 56)
+    configureGrid(1, cards.count(), [1060, rowHeight], [90, 250])
     setChromeText(tvView.title, tvView.subtitle, "")
     updateGridIfNeeded(content, signature)
+end sub
+
+
+sub renderWordGuessBoard(tvView as Object, isActiveRound as Boolean)
+    if isActiveRound and tvView.doesExist("roundEndsAt") and tvView.roundEndsAt <> invalid then
+        setTriviaTimerState(tvView.roundEndsAt, tvView.roundDurationMs)
+    else
+        setTriviaTimerState(invalid, 0)
+    end if
+
+    maskedWord = ""
+    if tvView.doesExist("maskedWord") and tvView.maskedWord <> invalid then
+        maskedWord = tvView.maskedWord
+    end if
+    showWordSandwichLetters(maskedWord, true)
+
+    cards = []
+    if tvView.doesExist("cards") and tvView.cards <> invalid then
+        cards = tvView.cards
+    end if
+
+    maxScore = 1
+    if tvView.doesExist("maxScore") and tvView.maxScore > 0 then
+        maxScore = tvView.maxScore
+    end if
+
+    content = CreateObject("roSGNode", "ContentNode")
+    signature = "word_guess|" + maskedWord + "|"
+
+    rowCount = cards.Count()
+    if rowCount < 1 then rowCount = 1
+    rowHeight = getLeaderboardRowHeight(rowCount, 420, 104, 86)
+
+    for each card in cards
+        item = CreateObject("roSGNode", "MiniGameContentNode")
+        item.cardkind = "word_guess_progress"
+        if card.doesExist("title") then item.title = card.title else item.title = ""
+        if card.doesExist("footer") then item.footertext = card.footer else item.footertext = ""
+        if card.doesExist("character") and card.character <> invalid then item.description = card.character else item.description = ""
+        if card.doesExist("latestGuess") and card.latestGuess <> invalid then item.bodytext = card.latestGuess else item.bodytext = ""
+        if card.doesExist("latestFeedback") and card.latestFeedback <> invalid then item.progressstates = card.latestFeedback else item.progressstates = ""
+        score = 0
+        if card.doesExist("score") then score = card.score
+        item.scoretext = score.ToStr() + " pts"
+        if card.doesExist("rank") then item.votecount = card.rank.ToStr() else item.votecount = "0"
+        item.cardwidth = 1060
+        item.cardheight = rowHeight
+        signature = signature + item.title + "|" + item.footertext + "|" + item.bodytext + "|" + item.progressstates + "|" + item.scoretext + "|"
+        content.appendChild(item)
+    end for
+
+    configureGrid(1, rowCount, [1060, rowHeight], [90, 252])
+    setChromeText(tvView.title, tvView.subtitle, tvView.description)
+    updateGridIfNeeded(content, signature)
+    setGridInteractive(false)
 end sub
 
 sub renderWordSandwichesBoard(tvView as Object)
@@ -355,9 +417,7 @@ sub renderWordSandwichesBoard(tvView as Object)
 
     rowCount = cards.count()
     if rowCount <= 0 then rowCount = 1
-    rowHeight = Int(410 / rowCount)
-    if rowHeight > 72 then rowHeight = 72
-    if rowHeight < 46 then rowHeight = 46
+    rowHeight = getLeaderboardRowHeight(rowCount, 356, 72, 46)
 
     content = CreateObject("roSGNode", "ContentNode")
     signature = "word_sandwiches|" + letters + "|"
@@ -518,6 +578,8 @@ sub updateModeText()
         setChromeText("Word Sandwiches", "Start or replay Word Sandwiches from the TV.", "")
     else if mode = "imposter" then
         setChromeText("Imposter", "Start or replay Imposter from the TV.", "")
+    else if mode = "word-match" then
+        setChromeText("Word Match", "Start or replay Word Match from the TV.", "")
     end if
 end sub
 
@@ -647,7 +709,7 @@ sub configureGrid(numColumns as Integer, numRows as Integer, itemSize as Object,
     if numColumns = 2 and numRows = 2 then
         m.miniGameGrid.itemSpacing = [20, 20]
     else if numColumns = 1 then
-        m.miniGameGrid.itemSpacing = [0, 10]
+        m.miniGameGrid.itemSpacing = [0, 8]
     else
         m.miniGameGrid.itemSpacing = [30, 30]
     end if
@@ -689,3 +751,17 @@ sub setChromeText(title as String, subtitle as String, bodyText as String)
     m.chrome.subtitle = subtitle
     m.chrome.bodyText = bodyText
 end sub
+
+function getLeaderboardRowHeight(rowCount as Integer, availableHeight as Integer, maxHeight as Integer, minHeight as Integer) as Integer
+    rows = rowCount
+    if rows < 1 then rows = 1
+
+    spacing = 8
+    usableHeight = availableHeight - ((rows - 1) * spacing)
+    if usableHeight < rows * minHeight then usableHeight = rows * minHeight
+
+    rowHeight = Int(usableHeight / rows)
+    if rowHeight > maxHeight then rowHeight = maxHeight
+    if rowHeight < minHeight then rowHeight = minHeight
+    return rowHeight
+end function

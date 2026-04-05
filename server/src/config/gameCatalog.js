@@ -13,5 +13,10 @@ module.exports = [
     id: "imposter",
     name: "Imposter",
     description: "One player gets no word. Blend in, listen closely, then vote them out."
-  }
+  },
+  {
+    id: "word-match",
+    name: "Word Match",
+    description: "Everyone guesses the same hidden word. Score rewards quick solves and fewer tries."
+  },
 ];

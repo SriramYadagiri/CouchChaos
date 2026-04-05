@@ -10,7 +10,7 @@ const CHARACTER_SLUGS = [
 
 const MODE_CONFIG = {
   couch_chaos: {
-    gameIds: ["trivia-toss", "word-sandwiches", "imposter"],
+    gameIds: ["trivia-toss", "word-sandwiches", "imposter", "word-match"],
     title: "Choose The Next Couch Chaos Game",
     controllerTitle: "Vote for the next Couch Chaos game",
     subtitle: "Players can vote on their phones, or the host can start the highlighted game from the TV.",
@@ -35,6 +35,13 @@ const MODE_CONFIG = {
     title: "Imposter",
     controllerTitle: "Play Imposter",
     subtitle: "Players can join on their phones, and the host can start or replay Imposter from the TV.",
+    description: ""
+  },
+  "word-match": {
+    gameIds: ["word-match"],
+    title: "Word Match",
+    controllerTitle: "Play Word Match",
+    subtitle: "Players can join on their phones, and the host can start or replay Word Match from the TV.",
     description: ""
   }
 };
@@ -274,13 +281,15 @@ class GameManager {
   maybeFinalizeGameVote(code) {
     const room = this.getRoom(code);
     if (!room || room.phase !== "game_select") return;
-    if (room.players.length === 0) return;
+    const connectedPlayers = room.players.filter((player) => player.isConnected !== false);
+    if (connectedPlayers.length === 0) return;
 
-    const voteCount = Object.keys(room.gameVotes).length;
+    const connectedIds = new Set(connectedPlayers.map((player) => player.id));
+    const voteCount = Object.entries(room.gameVotes).filter(([playerId]) => connectedIds.has(playerId)).length;
 
     this.tallyVotes(room);
 
-    if (voteCount < room.players.length) {
+    if (voteCount < connectedPlayers.length) {
       this.emitRoomState(code);
       return;
     }
@@ -376,6 +385,7 @@ class GameManager {
     });
 
     room.activeGame.start();
+    this.emitRoomState(code);
   }
 
   tallyVotes(room) {

@@ -31,7 +31,7 @@
         <Group id="rightPanel" translation="[490, 240]">
             <Label id="playersTitle" text="Players In Room" translation="[0, 0]" width="260" height="40" wrap="true" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
             <Label id="playersSubtitle" text="At least 3 players are recommended. Everyone except one player will see the secret word." translation="[0, 42]" width="420" height="56" wrap="true" color="0xC8DAEFFF" />
-            <MarkupGrid id="playerGrid" itemComponentName="PlayerGridItem" translation="[0, 75]" itemSize="[220, 100]" itemSpacing="[20, 20]" numColumns="3" numRows="3" drawFocusFeedback="false" />
+            <MarkupGrid id="playerGrid" itemComponentName="PlayerGridItem" translation="[0, 96]" itemSize="[220, 80]" itemSpacing="[20, 14]" numColumns="3" numRows="4" drawFocusFeedback="false" />
         </Group>
     </children>
 
