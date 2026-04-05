@@ -3,8 +3,12 @@ sub init()
 end sub
 
 sub startSpecificGame()
-    if m.top.roomCode = invalid or m.top.roomCode = "" then return
-    if m.top.gameId = invalid or m.top.gameId = "" then return
+    if m.top.roomCode = invalid then return
+    if m.top.roomCode = "" then return
+    if m.top.gameId = invalid then return
+    if m.top.gameId = "" then return
+
+    url = "https://couchchaos.onrender.com/api/room/" + m.top.roomCode + "/start-game?gameId=" + m.top.gameId + "&sourceMode=" + m.top.sourceMode
 
     transfer = CreateObject("roUrlTransfer")
     sourceMode = ""

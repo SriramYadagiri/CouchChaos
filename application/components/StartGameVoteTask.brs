@@ -3,7 +3,7 @@ sub init()
 end sub
 
 function startGameVote()
-    url = "http://192.168.1.104:3000/api/room/" + m.top.roomCode + "/start-game-vote?sourceMode=" + m.top.sourceMode
+    url = "https://couchchaos.onrender.com/api/room/" + m.top.roomCode + "/start-game-vote?sourceMode=" + m.top.sourceMode
     transfer = CreateObject("roUrlTransfer")
     transfer.SetUrl(url)
     transfer.SetRequest("POST")

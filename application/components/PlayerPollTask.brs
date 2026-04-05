@@ -4,7 +4,9 @@ end sub
 
 function pollRoom()
     while m.top.control <> "stop"
-        url = "http://192.168.1.104:3000/api/room/" + m.top.roomCode
+
+        url = "https://couchchaos.onrender.com/api/room/" + m.top.roomCode
+
         transfer = CreateObject("roUrlTransfer")
         transfer.SetUrl(url)
 
