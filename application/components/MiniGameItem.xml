@@ -80,6 +80,22 @@
             <Poster id="voterIcon10" width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
             <Poster id="voterIcon11" width="28" height="28" loadDisplayMode="scaleToFit" visible="false" />
         </Group>
+
+
+        <Group id="wordGuessProgressGroup" translation="[0, 0]" visible="false">
+            <Rectangle id="progressTile0" width="62" height="62" color="0x203246FF" />
+            <Rectangle id="progressTile1" width="62" height="62" color="0x203246FF" />
+            <Rectangle id="progressTile2" width="62" height="62" color="0x203246FF" />
+            <Rectangle id="progressTile3" width="62" height="62" color="0x203246FF" />
+            <Rectangle id="progressTile4" width="62" height="62" color="0x203246FF" />
+            <Label id="progressTileLabel0" width="62" height="62" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+            <Label id="progressTileLabel1" width="62" height="62" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+            <Label id="progressTileLabel2" width="62" height="62" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+            <Label id="progressTileLabel3" width="62" height="62" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+            <Label id="progressTileLabel4" width="62" height="62" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+            <Label id="progressMetaLabel" translation="[0, 70]" width="360" height="24" horizAlign="center" color="0xC8DAEFFF" />
+        </Group>
+
     </children>
 
     <script type="text/brightscript" uri="MiniGameItem.brs" />

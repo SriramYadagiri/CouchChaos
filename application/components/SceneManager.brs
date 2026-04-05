@@ -34,6 +34,10 @@ sub showKaraoke()
     showScreen("KaraokeScene", invalid, true)
 end sub
 
+sub showRemoteCoach()
+    showScreen("RemoteCoachScene", invalid, true)
+end sub
+
 sub goBack()
     if m.navigationStack = invalid or m.navigationStack.count() <= 0 then
         showMainMenu()

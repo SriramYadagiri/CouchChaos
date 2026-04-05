@@ -10,7 +10,7 @@ sub init()
         {
             id: "couch_chaos",
             title: "Couch Chaos",
-            description: "Party bundle. Host Trivia Toss, Word Sandwiches, or Imposter from one shared room.",
+            description: "Party bundle. Host Trivia Toss, Word Sandwiches, Imposter, or Word Match from one shared room.",
             footer: "Party Hub"
         },
         {
@@ -32,6 +32,12 @@ sub init()
             footer: "Party Game"
         },
         {
+            id: "word-match",
+            title: "Word Match",
+            description: "Everyone guesses the same hidden word on their phone. Faster solves with fewer tries score higher.",
+            footer: "Party Game"
+        },
+        {
             id: "shark_game",
             title: "Fish Race",
             description: "Single player TV game. Dodge the incoming hazards and survive as long as possible.",
@@ -41,6 +47,12 @@ sub init()
             id: "karaoke",
             title: "Karaoke",
             description: "TV lyrics mode. Follow the words on screen at a steady pace for a sing-along session.",
+            footer: "TV Game"
+        },
+        {
+            id: "remote_coach",
+            title: "Remote Coach",
+            description: "A coordination trainer for Roku remotes. Move to the highlighted tile and press OK as quickly as you can.",
             footer: "TV Game"
         }
     ]
@@ -76,8 +88,8 @@ sub populateGrid()
         item.description = game.description
         item.bodytext = game.description
         item.footertext = game.footer
-        item.cardwidth = 360
-        item.cardheight = 180
+        item.cardwidth = 256
+        item.cardheight = 176
         content.appendChild(item)
     end for
 
@@ -132,6 +144,8 @@ sub launchSelectedGame()
         if m.top.sceneManager <> invalid then m.top.sceneManager.callFunc("showSharkGame")
     else if game.id = "karaoke" then
         if m.top.sceneManager <> invalid then m.top.sceneManager.callFunc("showKaraoke")
+    else if game.id = "remote_coach" then
+        if m.top.sceneManager <> invalid then m.top.sceneManager.callFunc("showRemoteCoach")
     end if
 end sub
 
@@ -139,7 +153,7 @@ sub onRoomCreated()
     room = m.createTask.roomData
     m.isCreatingRoom = false
     if m.chrome <> invalid then
-        m.chrome.subtitle = "Pick a TV game, launch a single party game, or open Couch Chaos for the full party bundle."
+        m.chrome.subtitle = "Pick any game directly, or open Couch Chaos for the full party bundle."
     end if
 
     if room = invalid or not room.doesExist("code") then return

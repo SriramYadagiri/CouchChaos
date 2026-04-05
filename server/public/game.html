@@ -497,6 +497,148 @@
         grid-template-columns: 1fr;
       }
     }
+    .word-match-card {
+      display: grid;
+      gap: 16px;
+      padding: 20px;
+    }
+
+    .word-match-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .word-match-chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(39,194,255,0.12);
+      color: #92e3ff;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .word-match-meta-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .word-match-stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.05);
+      text-align: center;
+    }
+
+    .word-match-stat-value {
+      display: block;
+      font-size: 24px;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .word-match-stat-label {
+      display: block;
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .word-match-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    .word-match-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #2ad1ff, #238dff);
+      transition: width 120ms linear, background 160ms ease;
+    }
+
+    .word-match-board {
+      display: grid;
+      gap: 10px;
+    }
+
+    .word-match-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .word-match-tile {
+      aspect-ratio: 1 / 1;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(20px, 7vw, 30px);
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #ffffff;
+      transition: background 180ms ease, border-color 180ms ease, transform 120ms ease;
+    }
+
+    .word-match-tile[data-state="correct"] {
+      background: #239b56;
+      border-color: rgba(255,255,255,0.22);
+    }
+
+    .word-match-tile[data-state="present"] {
+      background: #d4ac0d;
+      color: #111;
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .word-match-tile[data-state="absent"] {
+      background: #55606e;
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .word-match-form {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+    }
+
+    .word-match-input {
+      width: 100%;
+      padding: 16px 18px;
+      border: 1px solid rgba(143, 223, 255, 0.22);
+      border-radius: 18px;
+      background: rgba(4, 14, 24, 0.72);
+      color: var(--text);
+      font: inherit;
+      font-size: 20px;
+      font-weight: 700;
+      text-transform: lowercase;
+      outline: none;
+    }
+
+    .word-match-input:focus {
+      border-color: rgba(39, 194, 255, 0.72);
+      box-shadow: 0 0 0 3px rgba(39, 194, 255, 0.18);
+    }
+
+    .word-match-message {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
   </style>
 </head>
 <body class="theme-shell controller-page">
@@ -583,6 +725,33 @@ function stopCountdownTimer() {
   if (!countdownTimerId) return;
   window.clearInterval(countdownTimerId);
   countdownTimerId = null;
+}
+
+function attachCountdown(fill, clock, endsAt, durationMs, options = {}) {
+  stopCountdownTimer();
+  if (!fill || !endsAt || !durationMs) return;
+
+  const updateTimer = () => {
+    const remaining = Math.max(0, endsAt - Date.now());
+    const ratio = Math.max(0, Math.min(1, remaining / Math.max(1, durationMs)));
+    fill.style.width = `${ratio * 100}%`;
+    fill.style.background = ratio <= 0.25
+      ? "#e74c3c"
+      : ratio <= 0.5
+        ? "#f1c40f"
+        : (options.safeBackground || "linear-gradient(90deg, #2ad1ff, #238dff)");
+
+    if (clock) {
+      clock.innerText = `${(remaining / 1000).toFixed(1)}s`;
+    }
+
+    if (remaining <= 0) {
+      stopCountdownTimer();
+    }
+  };
+
+  updateTimer();
+  countdownTimerId = window.setInterval(updateTimer, 100);
 }
 
 function formatPlace(place) {
@@ -894,21 +1063,19 @@ function renderWordSandwiches(content, view, detailsEl) {
 
   animateWordSandwichBoard(board, view.leaderboard || []);
 
-  stopCountdownTimer();
   if (!view.isFinal && view.segmentEndsAt && view.gameEndsAt) {
     const segmentFill = document.getElementById("wordSandwichSegmentFill");
     const gameFill = document.getElementById("wordSandwichGameFill");
     const segmentClock = document.getElementById("wordSandwichSegmentClock");
     const gameClock = document.getElementById("wordSandwichGameClock");
-    const segmentStart = Math.max(view.segmentEndsAt - 20000, Date.now() - 1);
-    const gameStart = Math.max(view.gameEndsAt - 60000, Date.now() - 1);
 
+    stopCountdownTimer();
     const updateClocks = () => {
       const now = Date.now();
       const segmentRemaining = Math.max(0, view.segmentEndsAt - now);
       const gameRemaining = Math.max(0, view.gameEndsAt - now);
-      const segmentRatio = Math.max(0, Math.min(1, segmentRemaining / Math.max(1, view.segmentEndsAt - segmentStart)));
-      const gameRatio = Math.max(0, Math.min(1, gameRemaining / Math.max(1, view.gameEndsAt - gameStart)));
+      const segmentRatio = Math.max(0, Math.min(1, segmentRemaining / 20000));
+      const gameRatio = Math.max(0, Math.min(1, gameRemaining / 60000));
 
       if (segmentFill) {
         segmentFill.style.width = `${segmentRatio * 100}%`;
@@ -925,6 +1092,8 @@ function renderWordSandwiches(content, view, detailsEl) {
 
     updateClocks();
     countdownTimerId = window.setInterval(updateClocks, 100);
+  } else {
+    stopCountdownTimer();
   }
 }
 
@@ -1191,7 +1360,29 @@ function renderLeaderboard(content, view, privateState) {
 
 function renderImposterRound(content, view, privateState) {
   renderPrivateCard(content, privateState);
-  content.appendChild(createPhaseMessage("Hint round", view.details || "Give one spoken hint."));
+  const phaseCard = createPhaseMessage("Hint round", view.details || "Give one spoken hint.");
+  if (view.phaseEndsAt && view.phaseDurationMs) {
+    const timerWrap = document.createElement("div");
+    timerWrap.className = "imposter-timer-wrap";
+    const timerMeta = document.createElement("div");
+    timerMeta.className = "imposter-timer-meta";
+    const timerLabel = document.createElement("span");
+    timerLabel.innerText = view.timerLabel || "Clue round";
+    const timerClock = document.createElement("span");
+    timerClock.id = "imposterRoundClock";
+    timerMeta.appendChild(timerLabel);
+    timerMeta.appendChild(timerClock);
+    const timerTrack = document.createElement("div");
+    timerTrack.className = "imposter-timer-track";
+    const timerFill = document.createElement("div");
+    timerFill.className = "imposter-timer-fill";
+    timerFill.id = "imposterRoundFill";
+    timerTrack.appendChild(timerFill);
+    timerWrap.appendChild(timerMeta);
+    timerWrap.appendChild(timerTrack);
+    phaseCard.appendChild(timerWrap);
+  }
+  content.appendChild(phaseCard);
   const actionCard = createCard("mobile-card section-card");
   const actionTitle = document.createElement("h2"); actionTitle.className = "section-title"; actionTitle.innerText = "Actions";
   actionCard.appendChild(actionTitle);
@@ -1218,6 +1409,17 @@ function renderImposterRound(content, view, privateState) {
     item.appendChild(n); item.appendChild(v); list.appendChild(item);
   });
   board.appendChild(list); content.appendChild(board);
+
+  if (view.phaseEndsAt && view.phaseDurationMs) {
+    attachCountdown(
+      document.getElementById("imposterRoundFill"),
+      document.getElementById("imposterRoundClock"),
+      view.phaseEndsAt,
+      view.phaseDurationMs
+    );
+  } else {
+    stopCountdownTimer();
+  }
 }
 
 function renderPlayerVote(content, view, privateState) {
@@ -1226,6 +1428,27 @@ function renderPlayerVote(content, view, privateState) {
   const title = document.createElement("h2"); title.className = "section-title"; title.innerText = view.title || "Vote";
   card.appendChild(title);
   if (view.details) { const sub = document.createElement("p"); sub.className = "section-copy"; sub.style.marginBottom = "16px"; sub.innerText = view.details; card.appendChild(sub); }
+  if (view.phaseEndsAt && view.phaseDurationMs) {
+    const timerWrap = document.createElement("div");
+    timerWrap.className = "imposter-timer-wrap";
+    const timerMeta = document.createElement("div");
+    timerMeta.className = "imposter-timer-meta";
+    const timerLabel = document.createElement("span");
+    timerLabel.innerText = view.timerLabel || "Voting";
+    const timerClock = document.createElement("span");
+    timerClock.id = "imposterVoteClock";
+    timerMeta.appendChild(timerLabel);
+    timerMeta.appendChild(timerClock);
+    const timerTrack = document.createElement("div");
+    timerTrack.className = "imposter-timer-track";
+    const timerFill = document.createElement("div");
+    timerFill.className = "imposter-timer-fill";
+    timerFill.id = "imposterVoteFill";
+    timerTrack.appendChild(timerFill);
+    timerWrap.appendChild(timerMeta);
+    timerWrap.appendChild(timerTrack);
+    card.appendChild(timerWrap);
+  }
   const grid = document.createElement("div"); grid.className = "player-vote-grid";
   (view.players || []).forEach((player) => {
     const isVotedFor = view.myVoteTargetId === player.id;
@@ -1241,6 +1464,144 @@ function renderPlayerVote(content, view, privateState) {
     grid.appendChild(cell);
   });
   card.appendChild(grid); content.appendChild(card);
+
+  if (view.phaseEndsAt && view.phaseDurationMs) {
+    attachCountdown(
+      document.getElementById("imposterVoteFill"),
+      document.getElementById("imposterVoteClock"),
+      view.phaseEndsAt,
+      view.phaseDurationMs
+    );
+  } else {
+    stopCountdownTimer();
+  }
+}
+
+function renderWordMatch(content, view, detailsEl) {
+  detailsEl.innerText = view.details || "Guess the hidden word.";
+
+  const card = createCard("mobile-card word-match-card");
+  const topline = document.createElement("div");
+  topline.className = "word-match-topline";
+
+  const headingBlock = document.createElement("div");
+  const heading = document.createElement("h2");
+  heading.className = "section-title";
+  heading.innerText = view.title || "Word Match";
+  const subcopy = document.createElement("p");
+  subcopy.className = "word-match-message";
+  subcopy.innerText = view.isRoundComplete
+    ? (view.revealedWord ? `Round complete. The word was ${view.revealedWord}.` : "Round complete.")
+    : "Green means right letter and right spot. Yellow means the letter belongs elsewhere.";
+  headingBlock.appendChild(heading);
+  headingBlock.appendChild(subcopy);
+
+  const roundChip = document.createElement("span");
+  roundChip.className = "word-match-chip";
+  roundChip.innerText = `Round ${view.roundNumber}/${view.roundTotal}`;
+
+  topline.appendChild(headingBlock);
+  topline.appendChild(roundChip);
+  card.appendChild(topline);
+
+  const stats = document.createElement("div");
+  stats.className = "word-match-meta-row";
+  stats.innerHTML = `
+    <div class="word-match-stat">
+      <span class="word-match-stat-value">${view.playerScore || 0}</span>
+      <span class="word-match-stat-label">Score</span>
+    </div>
+    <div class="word-match-stat">
+      <span class="word-match-stat-value">${view.attemptsUsed || 0}/${view.maxAttempts || 6}</span>
+      <span class="word-match-stat-label">Tries</span>
+    </div>
+    <div class="word-match-stat">
+      <span class="word-match-stat-value">${view.wordLength || 5}</span>
+      <span class="word-match-stat-label">Letters</span>
+    </div>`;
+  card.appendChild(stats);
+
+  if (view.roundEndsAt) {
+    const timerTrack = document.createElement("div");
+    timerTrack.className = "word-match-track";
+    const timerFill = document.createElement("div");
+    timerFill.className = "word-match-fill";
+    timerFill.id = "wordMatchFill";
+    timerTrack.appendChild(timerFill);
+    card.appendChild(timerTrack);
+  }
+
+  const board = document.createElement("div");
+  board.className = "word-match-board";
+  (view.rows || []).forEach((row) => {
+    const rowEl = document.createElement("div");
+    rowEl.className = "word-match-row";
+    const letters = (row.guess || "").toUpperCase().split("");
+    for (let i = 0; i < (view.wordLength || 5); i += 1) {
+      const tile = document.createElement("div");
+      tile.className = "word-match-tile";
+      tile.dataset.state = row.feedback?.[i] || "empty";
+      tile.innerText = letters[i] || "";
+      rowEl.appendChild(tile);
+    }
+    board.appendChild(rowEl);
+  });
+  card.appendChild(board);
+
+  const form = document.createElement("form");
+  form.className = "word-match-form";
+  const input = document.createElement("input");
+  input.className = "word-match-input";
+  input.type = "text";
+  input.maxLength = view.wordLength || 5;
+  input.placeholder = view.isRoundComplete ? "Round complete" : `Enter a ${view.wordLength || 5}-letter word`;
+  input.disabled = !view.canSubmit || pendingAction === "submit_guess";
+  input.autocomplete = "off";
+  input.spellcheck = false;
+  const submit = document.createElement("button");
+  submit.className = "primary-btn";
+  submit.type = "submit";
+  submit.disabled = !view.canSubmit || pendingAction === "submit_guess";
+  submit.innerText = pendingAction === "submit_guess" ? "Sending" : "Submit";
+  form.appendChild(input);
+  form.appendChild(submit);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const guess = (input.value || "").trim().toLowerCase();
+    if (!view.canSubmit || pendingAction === "submit_guess") return;
+    if (guess.length !== (view.wordLength || 5)) {
+      detailsEl.innerText = `Enter a ${view.wordLength || 5}-letter word.`;
+      return;
+    }
+    sendGameAction("submit_guess", { guess }, (response) => {
+      if (response?.ok) input.value = "";
+    });
+  });
+  card.appendChild(form);
+
+  const message = document.createElement("p");
+  message.className = "word-match-message";
+  if (view.latestResult?.solved) {
+    message.innerText = `Solved in ${view.latestResult.triesUsed} ${view.latestResult.triesUsed === 1 ? "try" : "tries"} for +${view.latestResult.pointsEarned} points.`;
+  } else if (view.isRoundComplete) {
+    message.innerText = view.revealedWord ? `Round complete. The word was ${view.revealedWord}.` : "Round complete.";
+  } else {
+    message.innerText = "Use the same hidden word as everyone else. Fewer guesses and faster solves score better.";
+  }
+  card.appendChild(message);
+
+  content.appendChild(card);
+
+  if (view.roundEndsAt) {
+    attachCountdown(
+      document.getElementById("wordMatchFill"),
+      null,
+      view.roundEndsAt,
+      view.roundDurationMs || 45000
+    );
+  } else {
+    stopCountdownTimer();
+  }
 }
 
 // ── Renderers map ──────────────────────────────────────────────────
@@ -1297,6 +1658,13 @@ const renderers = {
     mainShell.className = "mobile-shell controller-shell";
     heroCard.style.display = "";
     renderWordSandwiches(content, view, detailsEl);
+  },
+  word_guess(content, view, privateState, detailsEl) {
+    const heroCard = document.getElementById("heroCard");
+    const mainShell = document.getElementById("mainShell");
+    mainShell.className = "mobile-shell controller-shell";
+    heroCard.style.display = "";
+    renderWordMatch(content, view, detailsEl);
   }
 };
 
@@ -1346,8 +1714,8 @@ function render(state, privateState = {}) {
   }
   activeQuestionKey = nextQuestionKey;
 
-  // Only attach countdown from the MAIN render for non-kahoot layouts
-  if (view.layout !== "answer_grid") {
+  const countdownLayouts = new Set(["answer_grid", "word_sandwiches", "word_guess", "imposter_round", "player_vote"]);
+  if (!countdownLayouts.has(view.layout)) {
     stopCountdownTimer();
   }
 

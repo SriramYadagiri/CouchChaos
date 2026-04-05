@@ -5,6 +5,7 @@
         <function name="showMiniGameVote"/>
         <function name="showSharkGame"/>
         <function name="showKaraoke"/>
+        <function name="showRemoteCoach"/>
         <function name="goBack"/>
     </interface>
 
