@@ -4,7 +4,7 @@ const BaseGame = require("./BaseGame");
 
 const WORD_LENGTH = 5;
 const MAX_ATTEMPTS = 6;
-const ROUND_DURATION_MS = 45000;
+const ROUND_DURATION_MS = 60000;
 const RESULT_DURATION_MS = 3000;
 const FINAL_RESULTS_MS = 10000;
 const TOTAL_ROUNDS = 3;
