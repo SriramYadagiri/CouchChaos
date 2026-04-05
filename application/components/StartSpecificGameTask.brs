@@ -1,5 +1,6 @@
 sub init()
     m.top.functionName = "startSpecificGame"
+    m.serverBase = "https://couchchaos.onrender.com"
 end sub
 
 sub startSpecificGame()
@@ -7,8 +8,6 @@ sub startSpecificGame()
     if m.top.roomCode = "" then return
     if m.top.gameId = invalid then return
     if m.top.gameId = "" then return
-
-    url = "https://couchchaos.onrender.com/api/room/" + m.top.roomCode + "/start-game?gameId=" + m.top.gameId + "&sourceMode=" + m.top.sourceMode
 
     transfer = CreateObject("roUrlTransfer")
     sourceMode = ""
@@ -19,7 +18,7 @@ sub startSpecificGame()
         query = query + "&sourceMode=" + transfer.Escape(sourceMode)
     end if
 
-    url = "http://192.168.1.104:3000/api/room/" + m.top.roomCode + "/start-game?" + query
+    url = m.serverBase + "/api/room/" + m.top.roomCode + "/start-game?" + query
     transfer.SetUrl(url)
     transfer.SetRequest("POST")
 

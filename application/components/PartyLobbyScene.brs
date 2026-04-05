@@ -80,12 +80,7 @@ sub onRoomCodeSet()
 
     m.qrCode = m.top.findNode("qrCode")
     joinUrl = m.serverBase + "/join?code=" + m.top.roomCode
-
-    transfer = CreateObject("roUrlTransfer")
-    encodedUrl = joinUrl
-    if transfer <> invalid then
-        encodedUrl = transfer.escape(joinUrl)
-    end if
+    encodedUrl = urlEncode(joinUrl)
 
     m.qrCode.uri = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodedUrl
 
@@ -232,3 +227,16 @@ sub onGameStarted()
         m.top.sceneManager.callFunc("showMiniGameVote", m.top.roomCode, getGameMode())
     end if
 end sub
+
+function urlEncode(value as String) as String
+    encoded = value
+    encoded = Replace(encoded, "%", "%25")
+    encoded = Replace(encoded, " ", "%20")
+    encoded = Replace(encoded, ":", "%3A")
+    encoded = Replace(encoded, "/", "%2F")
+    encoded = Replace(encoded, "?", "%3F")
+    encoded = Replace(encoded, "&", "%26")
+    encoded = Replace(encoded, "=", "%3D")
+    encoded = Replace(encoded, "+", "%2B")
+    return encoded
+end function
