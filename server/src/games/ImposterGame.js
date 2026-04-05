@@ -14,6 +14,9 @@ const WORD_BANK = [
   "Campfire"
 ];
 
+const CLUE_ROUND_DURATION_MS = 45000;
+const VOTE_DURATION_MS = 20000;
+
 class ImposterGame extends BaseGame {
   constructor(context) {
     super(context);
@@ -25,7 +28,10 @@ class ImposterGame extends BaseGame {
       roundNumber: 1,
       votes: {},
       eliminatedIds: [],
-      lastRoundSummary: ""
+      lastRoundSummary: "",
+      phaseStartedAt: null,
+      phaseEndsAt: null,
+      phaseDurationMs: null
     };
   }
 
@@ -48,7 +54,46 @@ class ImposterGame extends BaseGame {
     this.state.eliminatedIds = [];
     this.state.lastRoundSummary = `${this.getCurrentSpeakerName()} gives the first hint. Anyone can end the clue round and start the vote.`;
 
+    this.beginClueRound();
+  }
+
+  beginPhaseTimer(durationMs, onExpire) {
+    const now = Date.now();
+    this.state.phaseStartedAt = now;
+    this.state.phaseDurationMs = durationMs;
+    this.state.phaseEndsAt = now + durationMs;
+    this.schedule("phase-deadline", durationMs, () => {
+      this.state.phaseEndsAt = null;
+      this.state.phaseStartedAt = null;
+      this.state.phaseDurationMs = null;
+      onExpire();
+    });
+  }
+
+  clearPhaseTimer() {
+    this.clearTimer("phase-deadline");
+    this.state.phaseStartedAt = null;
+    this.state.phaseEndsAt = null;
+    this.state.phaseDurationMs = null;
+  }
+
+  beginClueRound(summary = null) {
     this.setPhase("imposter_round");
+    if (summary) this.state.lastRoundSummary = summary;
+    this.beginPhaseTimer(CLUE_ROUND_DURATION_MS, () => {
+      this.state.votes = {};
+      this.state.lastRoundSummary = "Time is up. Everyone is now voting for the imposter.";
+      this.beginVoting();
+    });
+    this.emitRoomState();
+  }
+
+  beginVoting(summary = null) {
+    this.setPhase("imposter_voting");
+    if (summary) this.state.lastRoundSummary = summary;
+    this.beginPhaseTimer(VOTE_DURATION_MS, () => {
+      this.maybeResolveVote(true);
+    });
     this.emitRoomState();
   }
 
@@ -97,6 +142,7 @@ class ImposterGame extends BaseGame {
     }
 
     if (this.state.imposterId === playerId) {
+      this.clearPhaseTimer();
       this.setPhase("imposter_result");
       this.state.lastRoundSummary = "The imposter disconnected. Normal players win.";
       this.emitRoomState();
@@ -104,6 +150,7 @@ class ImposterGame extends BaseGame {
     }
 
     if (this.getAlivePlayers().length <= 2 && this.room.phase !== "imposter_result") {
+      this.clearPhaseTimer();
       this.setPhase("imposter_result");
       this.state.lastRoundSummary = "Only two players remain. The imposter wins.";
       this.emitRoomState();
@@ -171,9 +218,7 @@ class ImposterGame extends BaseGame {
     }
 
     this.state.votes = {};
-    this.state.lastRoundSummary = "The clue round has ended. Everyone is now voting for the imposter.";
-    this.setPhase("imposter_voting");
-    this.emitRoomState();
+    this.beginVoting("The clue round has ended. Everyone is now voting for the imposter.");
     this.acknowledge(ack, { ok: true });
   }
 
@@ -199,14 +244,16 @@ class ImposterGame extends BaseGame {
     this.acknowledge(ack, { ok: true });
   }
 
-  maybeResolveVote() {
+  maybeResolveVote(forceResolve = false) {
     const alivePlayers = this.getAlivePlayers();
     const allVoted = alivePlayers.every((player) => this.state.votes[player.id]);
 
-    if (!allVoted) {
+    if (!allVoted && !forceResolve) {
       this.emitRoomState();
       return;
     }
+
+    this.clearPhaseTimer();
 
     const voteCounts = this.getVoteCounts();
     let majorityTargetId = null;
@@ -223,10 +270,8 @@ class ImposterGame extends BaseGame {
 
     if (!majorityTargetId || highestVotes < majorityNeeded) {
       this.state.votes = {};
-      this.setPhase("imposter_round");
       this.advanceTurn();
-      this.state.lastRoundSummary = `No majority. No one was eliminated. ${this.getCurrentSpeakerName()} starts the next clue round.`;
-      this.emitRoomState();
+      this.beginClueRound(`No majority. No one was eliminated. ${this.getCurrentSpeakerName()} starts the next clue round.`);
       return;
     }
 
@@ -249,10 +294,8 @@ class ImposterGame extends BaseGame {
 
     this.state.votes = {};
     this.state.roundNumber += 1;
-    this.setPhase("imposter_round");
     this.ensureCurrentTurnIsAlive();
-    this.state.lastRoundSummary = `${eliminatedPlayer?.name || "A player"} was eliminated. ${this.getCurrentSpeakerName()} starts the next round.`;
-    this.emitRoomState();
+    this.beginClueRound(`${eliminatedPlayer?.name || "A player"} was eliminated. ${this.getCurrentSpeakerName()} starts the next round.`);
   }
 
   advanceTurn() {
@@ -347,6 +390,9 @@ class ImposterGame extends BaseGame {
       votesCast: Object.keys(this.state.votes).length,
       aliveCount: alivePlayers.length,
       imposterName: this.getPlayer(this.state.imposterId)?.name || "The Imposter",
+      phaseEndsAt: this.state.phaseEndsAt,
+      phaseStartedAt: this.state.phaseStartedAt,
+      phaseDurationMs: this.state.phaseDurationMs,
       alivePlayers: this.getPlayers().map((player) => ({
         id: player.id,
         name: player.name,
@@ -464,7 +510,10 @@ class ImposterGame extends BaseGame {
         canAdvanceTurn: isCurrentSpeaker,
         canStartVote: playerId ? !this.isEliminated(playerId) : false,
         players: publicState.alivePlayers,
-        currentSpeakerId: publicState.currentSpeakerId
+        currentSpeakerId: publicState.currentSpeakerId,
+        phaseEndsAt: publicState.phaseEndsAt,
+        phaseDurationMs: publicState.phaseDurationMs,
+        timerLabel: "Clue round"
       };
     }
 
@@ -474,6 +523,9 @@ class ImposterGame extends BaseGame {
         title: "Vote out the imposter",
         details: hasVoted ? "Vote locked in. Waiting for the others." : "Choose one player. Majority vote eliminates them.",
         myVoteTargetId,
+        phaseEndsAt: publicState.phaseEndsAt,
+        phaseDurationMs: publicState.phaseDurationMs,
+        timerLabel: "Voting",
         players: publicState.alivePlayers.filter((player) => !player.isEliminated).map((player) => ({
           id: player.id,
           label: player.name,
