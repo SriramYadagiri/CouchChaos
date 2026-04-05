@@ -3,36 +3,35 @@
         <AppChrome
             id="chrome"
             title="Choose A Game"
-            subtitle="Pick a TV game, launch a single party game, or open Couch Chaos for the full party bundle."
-            bodyText="Every game is accessible here, and Couch Chaos now includes Trivia Toss, Word Sandwiches, and Imposter."
+            subtitle="Pick any game directly, or open Couch Chaos for the full party bundle."
+            bodyText="Every multiplayer game is also available inside Couch Chaos."
             showBackButton="false"
         />
 
         <Poster
             id="titlePoster"
             uri="pkg:/images/title.png"
-            translation="[1030, 24]"
-            width="170"
-            height="58"
+            translation="[1120, 34]"
+            width="110"
+            height="38"
             loadWidth="600"
             loadHeight="200"
         />
 
-        <Rectangle id="gridPanel" translation="[52, 220]" width="1176" height="438" color="0x0E2034FF" />
+        <Rectangle id="gridPanel" translation="[50, 220]" width="1180" height="420" color="0x0E2034FF" />
 
         <MarkupGrid
             id="gameGrid"
             itemComponentName="MiniGameItem"
-            translation="[73, 240]"
-            itemSize="[360, 180]"
-            itemSpacing="[24, 18]"
-            numColumns="3"
+            translation="[66, 240]"
+            itemSize="[272, 188]"
+            itemSpacing="[12, 14]"
+            numColumns="4"
             numRows="2"
-           
             drawFocusFeedback="true"
         />
 
-        <Label id="hintLabel" translation="[90, 674]" width="1100" height="30" horizAlign="center" text="Use the arrows to pick a game. Press OK to launch or host it." color="0xC8DAEFFF" />
+        <Label id="hintLabel" translation="[90, 658]" width="1100" height="44" horizAlign="center" text="Use the arrows to pick a game. Press OK to launch or host it." color="0xC8DAEFFF" />
     </children>
 
     <interface>

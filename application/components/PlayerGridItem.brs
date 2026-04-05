@@ -37,7 +37,6 @@ sub onContentChanged()
         m.statusLabel.color = "0xFFD18BFF"
     end if
 
-    ' Load character icon if provided
     characterUrl = ""
     if item.doesExist("characterUrl") and item.characterUrl <> invalid and item.characterUrl <> "" then
         characterUrl = item.characterUrl
@@ -46,18 +45,16 @@ sub onContentChanged()
     if characterUrl <> "" then
         m.characterIcon.uri = characterUrl
         m.characterIcon.visible = true
-        ' Shift labels right to make room for icon
-        m.playerName.translation = [70, 14]
-        m.playerName.width = 138
-        m.statusLabel.translation = [70, 54]
-        m.statusLabel.width = 138
+        m.playerName.translation = [62, 12]
+        m.playerName.width = 146
+        m.statusLabel.translation = [62, 42]
+        m.statusLabel.width = 146
     else
         m.characterIcon.uri = ""
         m.characterIcon.visible = false
-        ' Use full-width layout when no icon
-        m.playerName.translation = [14, 14]
+        m.playerName.translation = [14, 12]
         m.playerName.width = 194
-        m.statusLabel.translation = [14, 54]
+        m.statusLabel.translation = [14, 42]
         m.statusLabel.width = 194
     end if
 end sub

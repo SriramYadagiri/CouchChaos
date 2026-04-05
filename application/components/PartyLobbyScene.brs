@@ -33,7 +33,7 @@ sub applyModeContent()
     if mode = "couch_chaos" then
         m.chrome.title = "Couch Chaos Lobby"
         m.chrome.subtitle = "Players appear on the right as they connect."
-        m.chrome.bodyText = "Start with Trivia Toss, Word Sandwiches, or Imposter."
+        m.chrome.bodyText = "Start with Trivia Toss, Word Sandwiches, Imposter, or Word Match."
         m.joinHintLabel.text = "Scan the code or enter the room code on your phone to join Couch Chaos."
         m.startGameButton.text = "Choose Starting Game"
         m.startHintLabel.text = "The TV host can open the Couch Chaos picker and start any multiplayer game right away."
@@ -58,6 +58,13 @@ sub applyModeContent()
         m.joinHintLabel.text = "Scan the code or enter the room code on your phone to join Imposter."
         m.startGameButton.text = "Start Imposter"
         m.startHintLabel.text = "The TV will show whose turn it is, the vote flow, and the final reveal."
+    else if mode = "word-match" then
+        m.chrome.title = "Word Match Lobby"
+        m.chrome.subtitle = "Players join on their phones, then race to solve the same hidden word."
+        m.chrome.bodyText = "Score rewards quick solves and fewer tries. Everyone gets the same word each round."
+        m.joinHintLabel.text = "Scan the code or enter the room code on your phone to join Word Match."
+        m.startGameButton.text = "Start Word Match"
+        m.startHintLabel.text = "Word Match can start with one player. Green means right spot, yellow means wrong spot, and gray means the letter is not in the word."
     end if
 end sub
 
@@ -118,6 +125,8 @@ sub onRoomUpdate()
         subtitle = subtitle + "3 or more players is best for a full round."
     else if connectedCount = 0 then
         subtitle = subtitle + "Players can join by scanning the QR code."
+    else if mode = "word-match" and connectedCount = 1 then
+        subtitle = subtitle + "One player is enough to start Word Match."
     else
         subtitle = subtitle + "Ready to start whenever you are."
     end if
@@ -219,7 +228,7 @@ end sub
 
 sub onGameStarted()
     refreshButtonStyles(false)
-    if m.startTask.roomState <> invalid and m.top.sceneManager <> invalid then
+    if m.top.sceneManager <> invalid then
         m.top.sceneManager.callFunc("showMiniGameVote", m.top.roomCode, getGameMode())
     end if
 end sub

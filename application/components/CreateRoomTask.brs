@@ -10,11 +10,10 @@ function createRoom()
     transfer.SetRequest("POST")
 
     response = transfer.GetToString()
-    print response
-
-    if response <> invalid then
+    if response <> invalid and response <> "" then
         data = ParseJson(response)
-        m.top.roomData = data
+        if data <> invalid then
+            m.top.roomData = data
+        end if
     end if
-
 end function

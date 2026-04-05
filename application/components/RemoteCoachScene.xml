@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="RemoteCoachScene" extends="Group">
+    <interface>
+        <field id="sceneManager" type="node" />
+        <function name="cleanup" />
+    </interface>
+
+    <script type="text/brightscript" uri="RemoteCoachScene.brs" />
+
+    <children>
+        <AppChrome
+            id="chrome"
+            title="Remote Coach"
+            subtitle="Use the arrows to move the selector, then press OK on the highlighted tile."
+            bodyText="Press OK to begin. This mode is designed as a gentle coordination trainer for Roku remotes."
+            showBackButton="true"
+            backLabel="Back To Menu"
+        />
+
+        <Rectangle id="playfield" translation="[120, 200]" width="760" height="440" color="0x0E2034FF" />
+        <Rectangle id="playfieldAccent" translation="[120, 200]" width="760" height="10" color="0x27C2FFFF" />
+        <Group id="targetGroup" translation="[170, 250]">
+            <Rectangle id="target0" width="150" height="90" color="0x203246FF" />
+            <Rectangle id="target1" width="150" height="90" color="0x203246FF" />
+            <Rectangle id="target2" width="150" height="90" color="0x203246FF" />
+            <Rectangle id="target3" width="150" height="90" color="0x203246FF" />
+            <Rectangle id="target4" width="150" height="90" color="0x203246FF" />
+            <Rectangle id="target5" width="150" height="90" color="0x203246FF" />
+            <Rectangle id="target6" width="150" height="90" color="0x203246FF" />
+            <Rectangle id="target7" width="150" height="90" color="0x203246FF" />
+            <Rectangle id="target8" width="150" height="90" color="0x203246FF" />
+            <Label id="targetLabel0" text="1" width="150" height="90" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xC8DAEFFF" />
+            <Label id="targetLabel1" text="2" width="150" height="90" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xC8DAEFFF" />
+            <Label id="targetLabel2" text="3" width="150" height="90" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xC8DAEFFF" />
+            <Label id="targetLabel3" text="4" width="150" height="90" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xC8DAEFFF" />
+            <Label id="targetLabel4" text="5" width="150" height="90" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xC8DAEFFF" />
+            <Label id="targetLabel5" text="6" width="150" height="90" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xC8DAEFFF" />
+            <Label id="targetLabel6" text="7" width="150" height="90" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xC8DAEFFF" />
+            <Label id="targetLabel7" text="8" width="150" height="90" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xC8DAEFFF" />
+            <Label id="targetLabel8" text="9" width="150" height="90" horizAlign="center" vertAlign="center" font="font:LargeBoldSystemFont" color="0xC8DAEFFF" />
+            <Rectangle id="selector" width="162" height="102" color="0x27C2FF33" opacity="1.0" borderWidth="7" borderColor="0x8AE8FFFF" />
+        </Group>
+
+        <Group id="statsGroup" translation="[920, 220]">
+            <Label id="scoreLabel" text="Hits: 0" width="260" height="40" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+            <Label id="timerLabel" text="Time: 45.0s" translation="[0, 54]" width="260" height="40" font="font:MediumBoldSystemFont" color="0x92E3FFFF" />
+            <Label id="streakLabel" text="Best Streak: 0" translation="[0, 102]" width="260" height="32" color="0xC8DAEFFF" />
+            <Label id="missLabel" text="Misses: 0" translation="[0, 136]" width="260" height="32" color="0xC8DAEFFF" />
+            <Label id="reactionLabel" text="Last Hit: --" translation="[0, 170]" width="280" height="32" color="0xC8DAEFFF" />
+            <Label id="currentTileLabel" text="Current Tile: 5" translation="[0, 204]" width="280" height="32" color="0x92E3FFFF" />
+        </Group>
+
+        <Label id="overlayLabel" text="Press OK to start" translation="[910, 430]" width="300" height="120" numLines="3" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+        <Timer id="gameTimer" duration="0.1" repeat="true" />
+    </children>
+</component>
